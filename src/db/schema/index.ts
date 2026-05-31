@@ -30,3 +30,21 @@ export {
   inventoryLog,
 } from "./order";
 export type { OrderStatus } from "./order";
+
+// ── Relations (for Drizzle queries) ───────────────────────────────────────
+export {
+  usersRelations,
+  accountsRelations,
+  sessionsRelations,
+  productCategoryRelations,
+  productRelations,
+  productItemRelations,
+  variationRelations,
+  variationOptionRelations,
+  productConfigurationRelations,
+  shoppingCartRelations,
+  shoppingCartItemRelations,
+  shopOrderRelations,
+  orderLineRelations,
+  inventoryLogRelations,
+} from "./relations";
