@@ -24,6 +24,6 @@ This version has breaking changes — APIs, conventions, and file structure may 
 2. **Server Components by default** - only add 'use client' when needed
 3. **TypeScript strict** - no `any` types unless absolutely necessary
 4. **No new dependencies without asking** - we have what we need
-5. **Drizzle schema changes** - always modify `src/db/schema.ts`, don't push (I'll do it)
+5. **Drizzle schema changes** - always modify in the folder `src/db/schema`, don't push (I'll do it)
 6. **Auth** - all auth logic stays in `src/lib/auth/auth.ts` unless needed
 7. **Components** - use Shadcn UI first, custom only when needed
