@@ -1,24 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter, Noto_Sans_Arabic } from "next/font/google";
+import { Noto_Sans_Arabic } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
+import { DirectionProvider } from "@/components/ui/direction";
 
-const notoSansArabic = Noto_Sans_Arabic({
-  subsets: ['arabic'],
-  variable: '--font-noto-sans-arabic',
-  display: 'swap',
-})
-
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const fontSans = Noto_Sans_Arabic({
+  subsets: ["arabic"],
+  variable: "--font-sans",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -32,12 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="ar"
-      dir="rtl"
-      className={cn("h-full", "antialiased", notoSansArabic.variable, geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="ar" dir="rtl" className={fontSans.variable}>
+      <body className="min-h-full flex flex-col">
+        <DirectionProvider dir="rtl">{children}</DirectionProvider>
+      </body>
     </html>
   );
 }
