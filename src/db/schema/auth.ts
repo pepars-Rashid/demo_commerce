@@ -8,6 +8,7 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
+import type { AdapterAccountType } from "@auth/core/adapters";
 import { timestamps } from "./helpers";
 
 // ── Users ──────────────────────────────────────────────────────────────────
@@ -36,16 +37,16 @@ export const accounts = pgTable(
     userId: varchar("user_id", { length: 36 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    type: varchar("type", { length: 32 }).notNull(),
+    type: varchar("type", { length: 32 }).$type<AdapterAccountType>().notNull(),
     provider: varchar("provider", { length: 64 }).notNull(),
     providerAccountId: varchar("provider_account_id", { length: 255 }).notNull(),
-    refreshToken: varchar("refresh_token", { length: 1024 }),
-    accessToken: varchar("access_token", { length: 1024 }),
-    expiresAt: integer("expires_at"),
-    tokenType: varchar("token_type", { length: 64 }),
+    refresh_token: varchar("refresh_token", { length: 1024 }),
+    access_token: varchar("access_token", { length: 1024 }),
+    expires_at: integer("expires_at"),
+    token_type: varchar("token_type", { length: 64 }),
     scope: varchar("scope", { length: 512 }),
-    idToken: varchar("id_token", { length: 2048 }),
-    sessionState: varchar("session_state", { length: 512 }),
+    id_token: varchar("id_token", { length: 2048 }),
+    session_state: varchar("session_state", { length: 512 }),
     ...timestamps,
   },
   (table) => [
@@ -71,7 +72,6 @@ export const sessions = pgTable(
 );
 
 // ── Verification Tokens ────────────────────────────────────────────────────
-// Ephemeral table — no timestamps needed; tokens are write-once and hard-deleted.
 export const verificationTokens = pgTable(
   "verification_tokens",
   {
