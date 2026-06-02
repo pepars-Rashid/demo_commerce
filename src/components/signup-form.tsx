@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import { useForm, Controller } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import Link from "next/link"
-import { signIn } from "next-auth/react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
+import { signIn } from "next-auth/react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
@@ -20,9 +20,9 @@ import {
   FieldGroup,
   FieldLabel,
   FieldSeparator,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { signupSchema, type SignupSchema } from "@/lib/zod/signup"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { signupSchema, type SignupSchema } from "@/lib/zod/signup";
 
 export function SignupForm({
   className,
@@ -41,15 +41,15 @@ export function SignupForm({
       password: "",
       confirmPassword: "",
     },
-  })
+  });
 
   async function onGoogleSignIn() {
-    await signIn("google", { redirectTo: "/" })
+    await signIn("google", { redirectTo: "/" });
   }
 
   async function onSubmit(data: SignupSchema) {
     // TODO: wire up actual registration API call
-    console.log("Signup data:", data)
+    console.log("Signup data:", data);
   }
 
   return (
@@ -108,7 +108,9 @@ export function SignupForm({
                 control={control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor={field.name}>البريد الإلكتروني</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>
+                      البريد الإلكتروني
+                    </FieldLabel>
                     <Input
                       {...field}
                       id={field.name}
@@ -148,7 +150,9 @@ export function SignupForm({
                   control={control}
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor={field.name}>تأكيد كلمة المرور</FieldLabel>
+                      <FieldLabel htmlFor={field.name}>
+                        تأكيد كلمة المرور
+                      </FieldLabel>
                       <Input
                         {...field}
                         id={field.name}
@@ -169,12 +173,19 @@ export function SignupForm({
                 </FieldDescription>
               </Field>
               <Field>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
                   {isSubmitting ? "جارٍ إنشاء الحساب..." : "إنشاء حساب"}
                 </Button>
                 <FieldDescription className="text-center">
                   لديك حساب بالفعل؟{" "}
-                  <Link href="/login" className="underline underline-offset-4 hover:text-primary">
+                  <Link
+                    href="/login"
+                    className="underline underline-offset-4 hover:text-primary"
+                  >
                     تسجيل الدخول
                   </Link>
                 </FieldDescription>
@@ -195,5 +206,5 @@ export function SignupForm({
         .
       </FieldDescription>
     </div>
-  )
+  );
 }

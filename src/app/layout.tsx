@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_Arabic } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
 import { DirectionProvider } from "@/components/ui/direction";
 
 const fontSans = Noto_Sans_Arabic({
@@ -20,9 +21,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" className={fontSans.variable}>
+    <html lang="ar" dir="rtl" className={fontSans.variable} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
-        <DirectionProvider dir="rtl">{children}</DirectionProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <DirectionProvider dir="rtl">{children}</DirectionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
