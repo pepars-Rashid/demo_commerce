@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { signupSchema, type SignupSchema } from "@/lib/zod/signup";
+import { signupAction } from "@/lib/actions/auth";
 
 export function SignupForm({
   className,
@@ -31,6 +32,7 @@ export function SignupForm({
   const {
     control,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<SignupSchema>({
     mode: "onBlur",
@@ -48,8 +50,31 @@ export function SignupForm({
   }
 
   async function onSubmit(data: SignupSchema) {
-    // TODO: wire up actual registration API call
-    console.log("Signup data:", data);
+    const formData = new FormData();
+    formData.set("name", data.name);
+    formData.set("email", data.email);
+    formData.set("password", data.password);
+    formData.set("confirmPassword", data.confirmPassword);
+
+    const result = await signupAction(undefined, formData);
+
+    if (!result.success) {
+      // Duplicate email → show on email field
+      if (result.error === "البريد الإلكتروني مستخدم بالفعل") {
+        setError("email", { message: result.error });
+      } else {
+        // General error → show below submit button
+        setError("root", { message: result.error });
+      }
+      return;
+    }
+
+    // Auto-login after successful signup
+    await signIn("credentials", {
+      email: data.email,
+      password: data.password,
+      redirectTo: "/",
+    });
   }
 
   return (
@@ -180,6 +205,9 @@ export function SignupForm({
                 >
                   {isSubmitting ? "جارٍ إنشاء الحساب..." : "إنشاء حساب"}
                 </Button>
+                {errors.root?.message && (
+                  <FieldError errors={[{ message: errors.root.message }]} />
+                )}
                 <FieldDescription className="text-center">
                   لديك حساب بالفعل؟{" "}
                   <Link

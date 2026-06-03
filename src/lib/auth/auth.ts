@@ -2,6 +2,7 @@ import NextAuth from "next-auth"
 import { DrizzleAdapter } from "@auth/drizzle-adapter"
 import Credentials from "next-auth/providers/credentials"
 import Google from "next-auth/providers/google"
+import { eq } from "drizzle-orm"
 import { db } from "@/db/db"
 import {
   users,
@@ -9,6 +10,8 @@ import {
   sessions,
   verificationTokens,
 } from "@/db/schema"
+import { loginSchema } from "@/lib/zod/login"
+import { verifyPassword } from "@/lib/auth/password"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: DrizzleAdapter(db, {
@@ -17,29 +20,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens,
   }),
-  providers: [Google,
+  providers: [
+    Google,
     Credentials({
       credentials: {
         email: {},
         password: {},
       },
       authorize: async (credentials) => {
-        let user = null
+        try {
+          const parsed = await loginSchema.safeParseAsync(credentials)
+          if (!parsed.success) return null
 
-        // logic to salt and hash password
-        // const pwHash = saltAndHashPassword(credentials.password)
+          const { email, password } = parsed.data
 
-        // logic to verify if the user exists
-        // user = await getUserFromDb(credentials.email, pwHash)
+          const user = await db.query.users.findFirst({
+            where: eq(users.email, email),
+          })
 
-        if (!user) {
-          // No user found, so this is their first attempt to login
-          // Optionally, this is also the place you could do a user registration
-          throw new Error("Invalid credentials.")
+          if (!user?.password) return null
+
+          const valid = await verifyPassword(password, user.password)
+          if (!valid) return null
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          }
+        } catch {
+          return null
         }
-
-        // return user object with their profile data
-        return user
       },
     }),
   ],

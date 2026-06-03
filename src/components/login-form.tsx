@@ -31,6 +31,7 @@ export function LoginForm({
   const {
     control,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<LoginSchema>({
     mode: "onBlur",
@@ -46,11 +47,17 @@ export function LoginForm({
   }
 
   async function onCredentialsSubmit(data: LoginSchema) {
-    await signIn("credentials", {
-      email: data.email,
-      password: data.password,
-      redirectTo: "/",
-    });
+    try {
+      await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        redirectTo: "/",
+      });
+    } catch {
+      setError("root", {
+        message: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+      });
+    }
   }
 
   return (
@@ -138,6 +145,9 @@ export function LoginForm({
                 >
                   {isSubmitting ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
                 </Button>
+                {errors.root?.message && (
+                  <FieldError errors={[{ message: errors.root.message }]} />
+                )}
                 <FieldDescription className="text-center">
                   ليس لديك حساب؟{" "}
                   <Link
