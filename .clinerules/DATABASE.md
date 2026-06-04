@@ -23,6 +23,7 @@
 - **Images** — `product.productImage` = single `varchar(2048)` (hero), `product_item.images` = JSONB array (gallery)
 - **Discounts** — `product_item.discount_price` (per-SKU), not on `product`
 - **Variants** = normalized EAV + denormalized `variants_json` on `product_item`
+- **Enum-like columns** — `varchar(length, enum: [...])` pattern, not `pgEnum` or a lookup table
 - **Column types** — `varchar` with explicit length, never `text`
 
 ## Varchar length reference
@@ -42,6 +43,7 @@
 | `variation_option.value` | 128 | "Red", "Extra Large" |
 | `shop_order.shipping_address`, `billing_address` | 1000 | Full address block |
 | `order_status` | 20 | Enum values are short |
+| `role` | 20 | "user" / "superAdmin" |
 | `inventory_log.reason` | 255 | Reason string |
 
 ## Directory structure

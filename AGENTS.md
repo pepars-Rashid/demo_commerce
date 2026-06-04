@@ -25,5 +25,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 3. **TypeScript strict** - no `any` types unless absolutely necessary
 4. **No new dependencies without asking** - we have what we need
 5. **Drizzle schema changes** - always modify in the folder `src/db/schema`, don't push (I'll do it)
-6. **Auth** - all auth logic stays in `src/lib/auth/auth.ts` unless needed
+6. **Auth** - see `.clinerules/AUTH.md` for auth rules, structure, and conventions
 7. **Components** - use Shadcn UI first, custom only when needed
