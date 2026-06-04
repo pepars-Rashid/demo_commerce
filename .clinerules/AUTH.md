@@ -7,6 +7,11 @@
 ## Config file
 `src/lib/auth/auth.ts` — single source of truth. Exports `{ handlers, signIn, signOut, auth }`.
 
+## Session strategy
+- **JWT** — `session: { strategy: "jwt" }` forced because DrizzleAdapter defaults to database sessions
+- Credentials users → JWT cookie (fast, no DB lookup)
+- Google OAuth users → still creates DB session row via adapter (coexists fine)
+
 ## Role system
 - `users.role` column: `"user"` (default) | `"superAdmin"`
 - Set via DB directly (seed script or direct update), no admin panel yet
