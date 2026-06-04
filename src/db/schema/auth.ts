@@ -1,5 +1,6 @@
 import {
   pgTable,
+  pgEnum,
   varchar,
   timestamp,
   integer,
@@ -10,6 +11,9 @@ import {
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "@auth/core/adapters";
 import { timestamps } from "./helpers";
+
+// ── Enums ──────────────────────────────────────────────────────────────────
+export const roleEnum = pgEnum("role", ["user", "superAdmin"]);
 
 // ── Users ──────────────────────────────────────────────────────────────────
 export const users = pgTable(
@@ -23,6 +27,7 @@ export const users = pgTable(
     emailVerified: timestamp("email_verified", { mode: "date" }),
     image: varchar("image", { length: 2048 }),
     password: varchar("password", { length: 255 }),
+    role: roleEnum("role").notNull().default("user"),
     ...timestamps,
   },
   (table) => [

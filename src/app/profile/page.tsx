@@ -29,6 +29,13 @@ export default async function ProfilePage() {
             </p>
           </div>
 
+          {user.role === "superAdmin" && (
+            <div className="rounded-md bg-muted p-3">
+              <p className="text-sm font-medium">الدور</p>
+              <p className="text-sm text-muted-foreground">مدير</p>
+            </div>
+          )}
+
           <LogoutButton />
         </div>
       </div>
