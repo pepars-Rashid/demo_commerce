@@ -12,6 +12,12 @@
 - Credentials users → JWT cookie (fast, no DB lookup)
 - Google OAuth users → still creates DB session row via adapter (coexists fine)
 
+## Role flow (callbacks)
+- `jwt` callback: on first login, grabs `role` from `authorize` return or DB → stores in token
+- `session` callback: copies `token.role` to `session.user.role` on every request
+- Result: role checked once at login, then cached in JWT — zero DB queries on subsequent requests
+- Changing role in DB → logout + login to refresh
+
 ## Role system
 - `users.role` column: `"user"` (default) | `"superAdmin"`
 - Set via DB directly (seed script or direct update), no admin panel yet

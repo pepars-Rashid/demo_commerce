@@ -21,6 +21,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     verificationTokensTable: verificationTokens,
   }),
   session: { strategy: "jwt" },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user?.role) {
+        token.role = user.role
+      } else if (!token.role && token.sub) {
+        const dbUser = await db.query.users.findFirst({
+          where: eq(users.id, token.sub),
+          columns: { role: true },
+        })
+        token.role = dbUser?.role ?? "user"
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (token.role) {
+        session.user.role = token.role as "user" | "superAdmin"
+      }
+      return session
+    },
+  },
   providers: [
     Google({
       allowDangerousEmailAccountLinking: true,
