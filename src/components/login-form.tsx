@@ -23,11 +23,14 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { loginSchema, type LoginSchema } from "@/lib/zod/login";
+import { useRouter } from "next/navigation";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const router = useRouter();
+
   const {
     control,
     handleSubmit,
@@ -47,17 +50,22 @@ export function LoginForm({
   }
 
   async function onCredentialsSubmit(data: LoginSchema) {
-    try {
-      await signIn("credentials", {
-        email: data.email,
-        password: data.password,
-        redirectTo: "/",
-      });
-    } catch {
+    const result = await signIn("credentials", {
+      email: data.email,
+      password: data.password,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      // Login failed
       setError("root", {
         message: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
       });
+      return; // Skip redirect
     }
+
+    // Login successful
+    router.push("/");
   }
 
   return (
