@@ -19,11 +19,13 @@ export const productCategory = pgTable(
       { onDelete: "set null" }
     ),
     categoryName: varchar("category_name", { length: 255 }).notNull(),
+    slug: varchar("slug", { length: 255 }).notNull().unique(),
     categoryImage: varchar("category_image", { length: 2048 }),
     ...timestamps,
   },
   (table) => [
     index("product_category_parent_idx").on(table.parentCategoryId),
+    index("product_category_slug_idx").on(table.slug),
   ]
 );
 
