@@ -1,0 +1,42 @@
+[
+  {
+    "slug": "beauty",
+    "name": "مستحضرات تجميل",
+    "url": "https://dummyjson.com/products/category/beauty"
+  },
+  {
+    "slug": "fragrances",
+    "name": "العطور",
+    "url": "https://dummyjson.com/products/category/fragrances"
+  },
+  {
+    "slug": "laptops",
+    "name": "أجهزة الكمبيوتر المحمولة",
+    "url": "https://dummyjson.com/products/category/laptops"
+  },
+  {
+    "slug": "mens-shirts",
+    "name": "القمصان الرجالية",
+    "url": "https://dummyjson.com/products/category/mens-shirts"
+  },
+  {
+    "slug": "mobile-accessories",
+    "name": "إكسسوارات الجوال",
+    "url": "https://dummyjson.com/products/category/mobile-accessories"
+  },
+  {
+    "slug": "skin-care",
+    "name": "العناية بالبشرة",
+    "url": "https://dummyjson.com/products/category/skin-care"
+  },
+  {
+    "slug": "smartphones",
+    "name": "الهواتف الذكية",
+    "url": "https://dummyjson.com/products/category/smartphones"
+  },
+  {
+    "slug": "womens-dresses",
+    "name": "الفساتين النسائية",
+    "url": "https://dummyjson.com/products/category/womens-dresses"
+  }
+]

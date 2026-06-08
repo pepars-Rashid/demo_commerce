@@ -1,0 +1,282 @@
+{
+  "products": [
+    {
+      "id": 121,
+      "title": "iPhone 5s",
+      "description": "هاتف iPhone 5s هو هاتف ذكي كلاسيكي معروف بتصميمه المدمج وميزاته المتقدمة عند إطلاقه. على الرغم من كونه نموذجًا أقدم، إلا أنه لا يزال يوفر تجربة مستخدم موثوقة.",
+      "category": "هواتف ذكية",
+      "price": 199.99,
+      "discountPercentage": 12.91,
+      "rating": 2.83,
+      "stock": 25,
+      "tags": ["هواتف ذكية", "Apple"],
+      "brand": "Apple",
+      "sku": "SMA-APP-IPH-121",
+      "weight": 2,
+      "dimensions": { "width": 5.29, "height": 18.38, "depth": 17.72 },
+      "warrantyInformation": "ضمان مدى الحياة",
+      "shippingInformation": "الشحن خلال شهر",
+      "availabilityStatus": "متوفر",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "موصى به بشدة!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "جيس سميث",
+          "reviewerEmail": "jace.smith@x.dummyjson.com"
+        },
+        {
+          "rating": 1,
+          "comment": "ليس كما هو موصوف!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "لوغان توريس",
+          "reviewerEmail": "logan.torres@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "راضٍ جدًا!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "هاربر كيلي",
+          "reviewerEmail": "harper.kelly@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "سياسة استرجاع لمدة 60 يومًا",
+      "minimumOrderQuantity": 3,
+      "meta": {
+        "createdAt": "2025-04-30T09:41:02.054Z",
+        "updatedAt": "2025-04-30T09:41:02.054Z",
+        "barcode": "8814683940853",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-5s/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-5s/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-5s/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/iphone-5s/thumbnail.webp"
+    },
+    {
+      "id": 122,
+      "title": "iPhone 6",
+      "description": "iPhone 6 هو هاتف ذكي أنيق وعالي الأداء بشاشة أكبر وأداء محسن. قدم ميزات جديدة وعناصر تصميمية جعلته خيارًا شائعًا في عصره.",
+      "category": "هواتف ذكية",
+      "price": 299.99,
+      "discountPercentage": 6.69,
+      "rating": 3.41,
+      "stock": 60,
+      "tags": ["هواتف ذكية", "Apple"],
+      "brand": "Apple",
+      "sku": "SMA-APP-IPH-122",
+      "weight": 7,
+      "dimensions": { "width": 11, "height": 9.1, "depth": 9.67 },
+      "warrantyInformation": "ضمان شهر واحد",
+      "shippingInformation": "شحن سريع خلال الليل",
+      "availabilityStatus": "متوفر",
+      "reviews": [
+        {
+          "rating": 3,
+          "comment": "منتج مخيب للآمال!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "ستيلا موريس",
+          "reviewerEmail": "stella.morris@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "جودة ممتازة!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "نولان غونزاليس",
+          "reviewerEmail": "nolan.gonzalez@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "قيمة ممتازة مقابل المال!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "بنيامين فوستر",
+          "reviewerEmail": "benjamin.foster@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "سياسة استرجاع لمدة 7 أيام",
+      "minimumOrderQuantity": 5,
+      "meta": {
+        "createdAt": "2025-04-30T09:41:02.054Z",
+        "updatedAt": "2025-04-30T09:41:02.054Z",
+        "barcode": "9922357685013",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-6/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-6/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-6/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/iphone-6/thumbnail.webp"
+    },
+    {
+      "id": 123,
+      "title": "iPhone 13 Pro",
+      "description": "iPhone 13 Pro هو هاتف ذكي متطور بنظام كاميرا قوي وشريحة عالية الأداء وشاشة مذهلة. يقدم ميزات متقدمة للمستخدمين الذين يبحثون عن أحدث التقنيات.",
+      "category": "هواتف ذكية",
+      "price": 1099.99,
+      "discountPercentage": 9.37,
+      "rating": 4.12,
+      "stock": 56,
+      "tags": ["هواتف ذكية", "Apple"],
+      "brand": "Apple",
+      "sku": "SMA-APP-IPH-123",
+      "weight": 8,
+      "dimensions": { "width": 12.63, "height": 5.28, "depth": 14.29 },
+      "warrantyInformation": "ضمان 3 سنوات",
+      "shippingInformation": "الشحن خلال أسبوعين",
+      "availabilityStatus": "متوفر",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "سأشتريه مرة أخرى!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "كريستيان بيريز",
+          "reviewerEmail": "christian.perez@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "لا يستحق السعر!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "ليام غونزاليس",
+          "reviewerEmail": "liam.gonzalez@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "راضٍ جدًا!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "تريستان سكوت",
+          "reviewerEmail": "tristan.scott@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "سياسة استرجاع لمدة 7 أيام",
+      "minimumOrderQuantity": 1,
+      "meta": {
+        "createdAt": "2025-04-30T09:41:02.054Z",
+        "updatedAt": "2025-04-30T09:41:02.054Z",
+        "barcode": "4998438802308",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-13-pro/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-13-pro/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-13-pro/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/iphone-13-pro/thumbnail.webp"
+    },
+    {
+      "id": 124,
+      "title": "iPhone X",
+      "description": "iPhone X هو هاتف ذكي رائد يتميز بشاشة OLED بدون إطار وتقنية التعرف على الوجه Face ID وأداء مذهل. يمثل علامة فارقة في تصميم iPhone والابتكار.",
+      "category": "هواتف ذكية",
+      "price": 899.99,
+      "discountPercentage": 19.59,
+      "rating": 2.51,
+      "stock": 37,
+      "tags": ["هواتف ذكية", "Apple"],
+      "brand": "Apple",
+      "sku": "SMA-APP-IPH-124",
+      "weight": 1,
+      "dimensions": { "width": 21.88, "height": 24.19, "depth": 14.19 },
+      "warrantyInformation": "ضمان 3 أشهر",
+      "shippingInformation": "الشحن خلال 3-5 أيام عمل",
+      "availabilityStatus": "متوفر",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "موصى به بشدة!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "تايلر ديفيس",
+          "reviewerEmail": "tyler.davis@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "منتج رائع!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "آريا باركر",
+          "reviewerEmail": "aria.parker@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "ليس كما هو موصوف!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "ليلي توريس",
+          "reviewerEmail": "lily.torres@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "سياسة استرجاع لمدة 7 أيام",
+      "minimumOrderQuantity": 2,
+      "meta": {
+        "createdAt": "2025-04-30T09:41:02.054Z",
+        "updatedAt": "2025-04-30T09:41:02.054Z",
+        "barcode": "3034949322264",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-x/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-x/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/iphone-x/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/iphone-x/thumbnail.webp"
+    },
+    {
+      "id": 125,
+      "title": "Oppo A57",
+      "description": "Oppo A57 هو هاتف ذكي من الفئة المتوسطة معروف بتصميمه الأنيق وميزاته القادرة. يقدم توازنًا بين الأداء والقدرة على تحمل التكاليف، مما يجعله خيارًا شائعًا.",
+      "category": "هواتف ذكية",
+      "price": 249.99,
+      "discountPercentage": 2.43,
+      "rating": 3.94,
+      "stock": 19,
+      "tags": ["هواتف ذكية", "Oppo"],
+      "brand": "Oppo",
+      "sku": "SMA-OPP-OPP-125",
+      "weight": 5,
+      "dimensions": { "width": 7.2, "height": 10.74, "depth": 23.68 },
+      "warrantyInformation": "ضمان مدى الحياة",
+      "shippingInformation": "الشحن خلال 3-5 أيام عمل",
+      "availabilityStatus": "متوفر",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "جودة ممتازة!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "سكارليت رايت",
+          "reviewerEmail": "scarlett.wright@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "جودة ممتازة!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "جاكوب كوبر",
+          "reviewerEmail": "jacob.cooper@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "جودة رديئة!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "زوي نيكولسون",
+          "reviewerEmail": "zoe.nicholson@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "سياسة استرجاع لمدة 90 يومًا",
+      "minimumOrderQuantity": 3,
+      "meta": {
+        "createdAt": "2025-04-30T09:41:02.054Z",
+        "updatedAt": "2025-04-30T09:41:02.054Z",
+        "barcode": "0651223722522",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/smartphones/oppo-a57/1.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/oppo-a57/2.webp",
+        "https://cdn.dummyjson.com/product-images/smartphones/oppo-a57/3.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/smartphones/oppo-a57/thumbnail.webp"
+    }
+  ],
+  "total": 16,
+  "skip": 0,
+  "limit": 5
+}

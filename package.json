@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "tsx --env-file=.env.local src/db/seed/index.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",

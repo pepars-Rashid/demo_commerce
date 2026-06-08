@@ -1,0 +1,282 @@
+{
+  "products": [
+    {
+      "id": 177,
+      "title": "فستان أسود للسيدات",
+      "description": "فستان السهرة الأسود الأنيق والخالد. بتصميمه الأسود الأنيق، يعتبر مثاليًا للمناسبات الرسمية والمناسبات الخاصة، حيث يضفي لمسة من الرقي والأناقة.",
+      "category": "فساتين نسائية",
+      "price": 129.99,
+      "discountPercentage": 10.48,
+      "rating": 3.64,
+      "stock": 25,
+      "tags": ["ملابس", "فساتين سهرة"],
+      "sku": "WOM-BRD-BLA-177",
+      "weight": 2,
+      "dimensions": { "width": 7.86, "height": 9.02, "depth": 25.82 },
+      "warrantyInformation": "ضمان مدى الحياة",
+      "shippingInformation": "الشحن خلال أسبوع",
+      "availabilityStatus": "متوفر",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "قيمة ممتازة مقابل المال!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "إيثان فليتشر",
+          "reviewerEmail": "ethan.fletcher@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "غير راضٍ تمامًا!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "جوليان نيوتن",
+          "reviewerEmail": "julian.newton@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "راضٍ جدًا!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "سافانا غوميز",
+          "reviewerEmail": "savannah.gomez@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "لا يوجد سياسة استرجاع",
+      "minimumOrderQuantity": 5,
+      "meta": {
+        "createdAt": "2025-04-30T09:41:02.054Z",
+        "updatedAt": "2025-04-30T09:41:02.054Z",
+        "barcode": "0630346013554",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-dresses/black-women's-gown/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/black-women's-gown/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/black-women's-gown/3.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/black-women's-gown/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-dresses/black-women's-gown/thumbnail.webp"
+    },
+    {
+      "id": 178,
+      "title": "كورسيه جلدي مع تنورة",
+      "description": "طقم الكورسيه الجلدي مع التنورة هو إطلالة جريئة وعصرية تجمع بين كورسيه أنيق وتنورة متطابقة. مثالي لعشاق الموضة، يجعلك محط الأنظار في أي مناسبة.",
+      "category": "فساتين نسائية",
+      "price": 89.99,
+      "discountPercentage": 16.26,
+      "rating": 3.05,
+      "stock": 30,
+      "tags": ["ملابس", "كورسيهات", "تنورات"],
+      "sku": "WOM-BRD-COR-178",
+      "weight": 1,
+      "dimensions": { "width": 6.01, "height": 12.6, "depth": 11.62 },
+      "warrantyInformation": "ضمان سنتان",
+      "shippingInformation": "شحن سريع خلال الليل",
+      "availabilityStatus": "متوفر",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "سعيد جدًا بشرائي!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "ناتالي برايس",
+          "reviewerEmail": "natalie.price@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "موصى به بشدة!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "صوفيا جونز",
+          "reviewerEmail": "sophia.jones@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "موصى به بشدة!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "ليو ريفيرا",
+          "reviewerEmail": "leo.rivera@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "سياسة استرجاع لمدة 30 يومًا",
+      "minimumOrderQuantity": 3,
+      "meta": {
+        "createdAt": "2025-04-30T09:41:02.054Z",
+        "updatedAt": "2025-04-30T09:41:02.054Z",
+        "barcode": "2931500162745",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-leather-with-skirt/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-leather-with-skirt/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-leather-with-skirt/3.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-leather-with-skirt/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-dresses/corset-leather-with-skirt/thumbnail.webp"
+    },
+    {
+      "id": 179,
+      "title": "كورسيه مع تنورة سوداء",
+      "description": "طقم الكورسيه مع التنورة السوداء هو إطلالة أنيقة ومتعددة الاستخدامات تجمع بين كورسيه عصري وتنورة سوداء كلاسيكية. يمنحك مظهرًا عصريًا ومتناسقًا لمختلف المناسبات.",
+      "category": "فساتين نسائية",
+      "price": 79.99,
+      "discountPercentage": 15.06,
+      "rating": 4.52,
+      "stock": 33,
+      "tags": ["ملابس", "كورسيهات", "تنورات"],
+      "sku": "WOM-BRD-COR-179",
+      "weight": 7,
+      "dimensions": { "width": 17.56, "height": 28.42, "depth": 23.95 },
+      "warrantyInformation": "ضمان شهر واحد",
+      "shippingInformation": "الشحن خلال أسبوع",
+      "availabilityStatus": "متوفر",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "راضٍ جدًا!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "لوكاس ألين",
+          "reviewerEmail": "lucas.allen@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "منتج مخيب للآمال!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "بنيامين ويلسون",
+          "reviewerEmail": "benjamin.wilson@x.dummyjson.com"
+        },
+        {
+          "rating": 5,
+          "comment": "سعيد جدًا بشرائي!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "إيلينا لونغ",
+          "reviewerEmail": "elena.long@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "لا يوجد سياسة استرجاع",
+      "minimumOrderQuantity": 5,
+      "meta": {
+        "createdAt": "2025-04-30T09:41:02.054Z",
+        "updatedAt": "2025-04-30T09:41:02.054Z",
+        "barcode": "9336695899390",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-with-black-skirt/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-with-black-skirt/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-with-black-skirt/3.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/corset-with-black-skirt/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-dresses/corset-with-black-skirt/thumbnail.webp"
+    },
+    {
+      "id": 180,
+      "title": "فستان البازلاء",
+      "description": "فستان البازلاء هو فستان أنيق ومريح بنقشة البازلاء. مثالي للنزهات اليومية، يضيف لمسة مرحة وممتعة لخزانتك، مما يجعله خيارًا رائعًا للارتداء اليومي.",
+      "category": "فساتين نسائية",
+      "price": 49.99,
+      "discountPercentage": 17.68,
+      "rating": 4.88,
+      "stock": 6,
+      "tags": ["ملابس", "فساتين"],
+      "sku": "WOM-BRD-DRE-180",
+      "weight": 1,
+      "dimensions": { "width": 28.51, "height": 20.99, "depth": 12.58 },
+      "warrantyInformation": "ضمان سنتان",
+      "shippingInformation": "شحن سريع خلال الليل",
+      "availabilityStatus": "مخزون منخفض",
+      "reviews": [
+        {
+          "rating": 4,
+          "comment": "شحن سريع!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "هاربر تيرنر",
+          "reviewerEmail": "harper.turner@x.dummyjson.com"
+        },
+        {
+          "rating": 1,
+          "comment": "لا يستحق السعر!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "لونا راسل",
+          "reviewerEmail": "luna.russell@x.dummyjson.com"
+        },
+        {
+          "rating": 2,
+          "comment": "لن أشتريه مرة أخرى!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "مايكل جونسون",
+          "reviewerEmail": "michael.johnson@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "سياسة استرجاع لمدة 90 يومًا",
+      "minimumOrderQuantity": 6,
+      "meta": {
+        "createdAt": "2025-04-30T09:41:02.054Z",
+        "updatedAt": "2025-04-30T09:41:02.054Z",
+        "barcode": "8142375980193",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-dresses/dress-pea/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/dress-pea/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/dress-pea/3.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/dress-pea/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-dresses/dress-pea/thumbnail.webp"
+    },
+    {
+      "id": 181,
+      "title": "بدلة مآرني حمراء وسوداء",
+      "description": "بدلة مآرني الحمراء والسوداء هي طقم راقٍ وعصري. بمزيج من الدرجات الحمراء والسوداء، تعكس تصميمًا حديثًا لإطلالة جريئة وواثقة.",
+      "category": "فساتين نسائية",
+      "price": 179.99,
+      "discountPercentage": 19.02,
+      "rating": 4.48,
+      "stock": 62,
+      "tags": ["ملابس", "بدلات"],
+      "sku": "WOM-BRD-MAR-181",
+      "weight": 3,
+      "dimensions": { "width": 26.02, "height": 9.93, "depth": 25.48 },
+      "warrantyInformation": "ضمان 5 سنوات",
+      "shippingInformation": "الشحن خلال أسبوعين",
+      "availabilityStatus": "متوفر",
+      "reviews": [
+        {
+          "rating": 5,
+          "comment": "شحن سريع!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "إيفري بيريز",
+          "reviewerEmail": "avery.perez@x.dummyjson.com"
+        },
+        {
+          "rating": 3,
+          "comment": "خائب جدًا!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "سكارليت رايت",
+          "reviewerEmail": "scarlett.wright@x.dummyjson.com"
+        },
+        {
+          "rating": 4,
+          "comment": "معجب جدًا!",
+          "date": "2025-04-30T09:41:02.054Z",
+          "reviewerName": "كلير فوستر",
+          "reviewerEmail": "claire.foster@x.dummyjson.com"
+        }
+      ],
+      "returnPolicy": "سياسة استرجاع لمدة 90 يومًا",
+      "minimumOrderQuantity": 2,
+      "meta": {
+        "createdAt": "2025-04-30T09:41:02.054Z",
+        "updatedAt": "2025-04-30T09:41:02.054Z",
+        "barcode": "7479689140965",
+        "qrCode": "https://cdn.dummyjson.com/public/qr-code.png"
+      },
+      "images": [
+        "https://cdn.dummyjson.com/product-images/womens-dresses/marni-red-&-black-suit/1.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/marni-red-&-black-suit/2.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/marni-red-&-black-suit/3.webp",
+        "https://cdn.dummyjson.com/product-images/womens-dresses/marni-red-&-black-suit/4.webp"
+      ],
+      "thumbnail": "https://cdn.dummyjson.com/product-images/womens-dresses/marni-red-&-black-suit/thumbnail.webp"
+    }
+  ],
+  "total": 5,
+  "skip": 0,
+  "limit": 5
+}
