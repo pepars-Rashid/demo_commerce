@@ -3,6 +3,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { db } from "@/db/db";
 import { productCategory, product, productItem } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -83,15 +84,25 @@ export async function seedProducts() {
         .values({ categoryId, name: p.title, description: p.description, basePrice: p.price.toFixed(2), productImage: p.thumbnail })
         .returning({ id: product.id });
 
-      await db.insert(productItem).values({
-        productId: prod.id,
-        sku: p.sku,
-        qtyInStock: p.stock,
-        price: p.price.toFixed(2),
-        discountPrice,
-        images: p.images,
-        variantsJson: {},
-      });
+      // Insert with null SKU → get serial ID → update SKU
+      const [newItem] = await db
+        .insert(productItem)
+        .values({
+          productId: prod.id,
+          sku: null,
+          qtyInStock: p.stock,
+          price: p.price.toFixed(2),
+          discountPrice,
+          images: p.images,
+          variantsJson: {},
+        })
+        .returning({ id: productItem.id });
+
+      const sku = `${slug}-${newItem.id}`;
+      await db
+        .update(productItem)
+        .set({ sku })
+        .where(eq(productItem.id, newItem.id));
 
       productCount++;
       itemCount++;

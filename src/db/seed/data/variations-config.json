@@ -1,0 +1,10 @@
+{
+  "mens-shirts": {
+    "sizes": ["S", "M", "L", "XL", "XXL"],
+    "colors": [
+      { "label": "أحمر", "hex": "#FF0000" },
+      { "label": "أزرق", "hex": "#0000FF" },
+      { "label": "أسود", "hex": "#000000" }
+    ]
+  }
+}
