@@ -21,9 +21,7 @@ export const shoppingCart = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     ...timestamps,
   },
-  (table) => [
-    index("shopping_cart_user_id_idx").on(table.userId),
-  ]
+  (table) => []
 );
 
 // ── Shopping Cart Item ─────────────────────────────────────────────────────

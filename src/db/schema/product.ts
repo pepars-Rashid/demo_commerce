@@ -25,7 +25,6 @@ export const productCategory = pgTable(
   },
   (table) => [
     index("product_category_parent_idx").on(table.parentCategoryId),
-    index("product_category_slug_idx").on(table.slug),
   ]
 );
 
@@ -58,7 +57,7 @@ export const productItem = pgTable(
     productId: integer("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
-    sku: varchar("sku", { length: 64 }).notNull().unique(),
+    sku: varchar("sku", { length: 64 }).unique(),
     qtyInStock: integer("qty_in_stock").notNull().default(0),
     reservedStock: integer("reserved_stock").notNull().default(0),
     price: decimal("price", { precision: 12, scale: 2 }).notNull(),
@@ -70,7 +69,6 @@ export const productItem = pgTable(
   },
   (table) => [
     index("product_item_product_id_idx").on(table.productId),
-    index("product_item_sku_idx").on(table.sku),
   ]
 );
 

@@ -32,9 +32,7 @@ export const users = pgTable(
       .default("user"),
     ...timestamps,
   },
-  (table) => [
-    uniqueIndex("users_email_idx").on(table.email),
-  ]
+  (table) => []
 );
 
 // ── Accounts ───────────────────────────────────────────────────────────────
