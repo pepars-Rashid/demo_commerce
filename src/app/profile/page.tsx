@@ -1,6 +1,9 @@
 import { auth } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { LogoutButton } from "@/components/logout-button";
+import { Button } from "@/components/ui/button";
+import { LayoutDashboard } from "lucide-react";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -30,10 +33,18 @@ export default async function ProfilePage() {
           </div>
 
           {user.role === "superAdmin" && (
-            <div className="rounded-md bg-muted p-3">
-              <p className="text-sm font-medium">الدور</p>
-              <p className="text-sm text-muted-foreground">مدير</p>
-            </div>
+            <>
+              <div className="rounded-md bg-muted p-3">
+                <p className="text-sm font-medium">الدور</p>
+                <p className="text-sm text-muted-foreground">مدير</p>
+              </div>
+              <Button variant="default" className="w-full" asChild>
+                <Link href="/profile/admin">
+                  <LayoutDashboard className="ml-2 h-4 w-4" />
+                  لوحة التحكم
+                </Link>
+              </Button>
+            </>
           )}
 
           <LogoutButton />
