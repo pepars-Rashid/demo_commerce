@@ -1,28 +1,35 @@
-import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProductFormPage } from "@/components/admin/products/product-form-page";
+import { categories } from "@/lib/mock/categories";
 
 export default function NewProductPage() {
   return (
-    <div className="space-y-6" dir="rtl">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/profile/admin/products">
+    <div className="mx-auto max-w-3xl space-y-6" dir="rtl">
+      <div className="flex items-center gap-3">
+        <Button asChild variant="ghost" size="icon">
+          <Link href="/profile/admin/products" aria-label="رجوع">
             <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">إضافة منتج جديد</h1>
           <p className="text-sm text-muted-foreground">
-            إنشاء منتج جديد مع المتغيرات والأسعار
+            أدخل بيانات المنتج وأضف متغيراته
           </p>
         </div>
       </div>
-      <div className="flex h-60 items-center justify-center rounded-lg border">
-        <p className="text-sm text-muted-foreground">
-          نموذج إضافة منتج جديد قريباً
-        </p>
-      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>بيانات المنتج</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ProductFormPage categories={categories} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
