@@ -1,7 +1,13 @@
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
-import { Sidebar } from "./sidebar";
+import { Separator } from "@/components/ui/separator";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 export default async function AdminLayout({
   children,
@@ -16,16 +22,28 @@ export default async function AdminLayout({
 
   return (
     <TooltipProvider>
-      <div className="flex min-h-screen">
-        <Sidebar
+      <SidebarProvider>
+        <AppSidebar
           user={{
             name: session.user.name ?? null,
             email: session.user.email ?? null,
             image: session.user.image ?? null,
           }}
         />
-        <main className="flex-1 p-6">{children}</main>
-      </div>
+        <SidebarInset>
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+            <SidebarTrigger />
+            <Separator
+              orientation="vertical"
+              className="h-4 me-2"
+            />
+            <span className="text-xs text-muted-foreground">
+              لوحة التحكم
+            </span>
+          </header>
+          <main className="flex-1 p-6">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
       <Toaster position="bottom-left" richColors />
     </TooltipProvider>
   );

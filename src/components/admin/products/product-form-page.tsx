@@ -12,6 +12,7 @@ interface ProductFormPageProps {
   categories: ProductCategory[];
   product?: Product;
   productItems?: ProductItem[];
+  readOnly?: boolean;
 }
 
 export function ProductFormPage(props: ProductFormPageProps) {

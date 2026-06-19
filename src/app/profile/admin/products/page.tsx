@@ -1,8 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { Package, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import {
+  Eye,
+  Package,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  Check,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +45,7 @@ import { formatCurrency, formatNumber } from "@/lib/admin-format";
 export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<string>("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<{
     id: string;
     name: string;
@@ -52,10 +61,41 @@ export default function ProductsPage() {
     });
   }, [search, categoryId]);
 
+  const allSelected = useMemo(
+    () => filtered.length > 0 && selected.size === filtered.length,
+    [selected, filtered],
+  );
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelected((prev) => {
+      if (prev.size === filtered.length) {
+        return new Set();
+      }
+      return new Set(filtered.map((p) => p.id));
+    });
+  }, [filtered]);
+
   function confirmDelete() {
     if (!deleteTarget) return;
-    // UI only — no persistence.
     toast.success(`تم حذف المنتج "${deleteTarget.name}"`);
+  }
+
+  function handleBatchDelete() {
+    const count = selected.size;
+    setSelected(new Set());
+    toast.success(`تم حذف ${formatNumber(count)} منتج`);
   }
 
   return (
@@ -64,8 +104,18 @@ export default function ProductsPage() {
         title="المنتجات"
         description="إدارة المنتجات والمتغيرات والأسعار"
         action={
-          <Button asChild>
-            <Link href="/profile/admin/products/new">
+          <Button>
+            <a
+              href="/profile/admin/products/new"
+              className="sm:hidden inline-flex items-center gap-1"
+            >
+              <Plus className="h-4 w-4" />
+              إضافة منتج
+            </a>
+            <Link
+              href="/profile/admin/products/new"
+              className="hidden sm:inline-flex items-center gap-1"
+            >
               <Plus className="h-4 w-4" />
               إضافة منتج
             </Link>
@@ -114,9 +164,39 @@ export default function ProductsPage() {
         />
       ) : (
         <div className="rounded-lg border">
+          {/* Batch delete bar — visible when items are selected */}
+          {selected.size > 0 && (
+            <div className="flex items-center justify-between border-b bg-muted/40 px-4 py-2">
+              <span className="text-sm text-muted-foreground">
+                تم تحديد {formatNumber(selected.size)}{" "}
+                {selected.size === 1 ? "منتج" : "منتجات"}
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBatchDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+                حذف المحدد
+              </Button>
+            </div>
+          )}
+
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <div className="flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 rounded border-input"
+                      aria-label="تحديد الكل"
+                    />
+                  </div>
+                </TableHead>
+                <TableHead className="w-10 text-muted-foreground">#</TableHead>
                 <TableHead>المنتج</TableHead>
                 <TableHead>التصنيف</TableHead>
                 <TableHead>السعر الأساسي</TableHead>
@@ -126,12 +206,26 @@ export default function ProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((product) => {
+              {filtered.map((product, index) => {
                 const itemCount =
                   getProductItemsByProductId(product.id).length;
                 const totalStock = getProductTotalStock(product.id);
                 return (
                   <TableRow key={product.id}>
+                    <TableCell>
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(product.id)}
+                          onChange={() => toggleSelect(product.id)}
+                          className="h-4 w-4 rounded border-input"
+                          aria-label={`تحديد ${product.name}`}
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {index + 1}
+                    </TableCell>
                     <TableCell className="font-medium">
                       {product.name}
                     </TableCell>
@@ -153,6 +247,13 @@ export default function ProductsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
+                        <IconActionButton label="عرض" asChild>
+                          <Link
+                            href={`/profile/admin/products/${product.id}?view=true`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </IconActionButton>
                         <IconActionButton label="تعديل" asChild>
                           <Link
                             href={`/profile/admin/products/${product.id}`}
@@ -185,7 +286,9 @@ export default function ProductsPage() {
       <DeleteDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        description={`هل أنت متأكد من حذف المنتج "${deleteTarget?.name ?? ""}"؟ لا يمكن التراجع عن هذا الإجراء.`}
+        description={`هل أنت متأكد من حذف المنتج "${
+          deleteTarget?.name ?? ""
+        }"؟ لا يمكن التراجع عن هذا الإجراء.`}
         onConfirm={confirmDelete}
       />
     </div>

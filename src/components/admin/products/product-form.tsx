@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useFieldArray, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -14,40 +15,79 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Field,
+  FieldContent,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
 import { IconActionButton } from "@/components/admin/icon-action-button";
-import type {
-  Product,
-  ProductCategory,
-  ProductItem,
-} from "@/lib/mock/types";
-
-interface ItemRow {
-  key: string;
-  sku: string;
-  price: string;
-  discountPrice: string;
-  qtyInStock: string;
-  variants: string;
-}
+import type { Product, ProductCategory, ProductItem } from "@/lib/mock/types";
+import type { ProductFormValues } from "@/lib/zod/product";
+import { productSchema } from "@/lib/zod/product";
 
 interface ProductFormProps {
   categories: ProductCategory[];
   product?: Product;
   productItems?: ProductItem[];
-  /** Called after a successful save (e.g. to close a modal or navigate). */
   onDone?: () => void;
-  /** Layout variant — full pages use a wider 2-column grid. */
   layout?: "sheet" | "page";
+  readOnly?: boolean;
 }
 
-function variantsToText(variantsJson: Record<string, string>): string {
-  return Object.entries(variantsJson)
-    .map(([k, v]) => `${k}: ${v}`)
-    .join("، ");
+function variantsToRows(variantsJson: Record<string, string>) {
+  return Object.entries(variantsJson).map(([key, value]) => ({
+    key,
+    value,
+  }));
 }
 
-function makeKey() {
-  return Math.random().toString(36).slice(2, 10);
+function rowsToVariants(
+  rows: { key: string; value: string }[],
+): Record<string, string> {
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+}
+
+function defaultValues(
+  product?: Product,
+  productItems?: ProductItem[],
+): ProductFormValues {
+  if (!product) {
+    return {
+      name: "",
+      description: "",
+      basePrice: 0,
+      productImage: "",
+      categoryId: "",
+      items: [
+        {
+          sku: "",
+          price: 0,
+          discountPrice: null,
+          qtyInStock: 0,
+          variants: [{ key: "", value: "" }],
+        },
+      ],
+    };
+  }
+
+  return {
+    name: product.name,
+    description: product.description,
+    basePrice: product.basePrice,
+    productImage: product.productImage ?? "",
+    categoryId: product.categoryId,
+    items: (productItems ?? []).map((i) => ({
+      sku: i.sku,
+      price: i.price,
+      discountPrice: i.discountPrice,
+      qtyInStock: i.qtyInStock,
+      variants:
+        Object.keys(i.variantsJson).length > 0
+          ? variantsToRows(i.variantsJson)
+          : [{ key: "", value: "" }],
+    })),
+  };
 }
 
 export function ProductForm({
@@ -56,83 +96,43 @@ export function ProductForm({
   productItems = [],
   onDone,
   layout = "sheet",
+  readOnly = false,
 }: ProductFormProps) {
   const isEdit = Boolean(product);
 
-  const [name, setName] = useState(product?.name ?? "");
-  const [description, setDescription] = useState(product?.description ?? "");
-  const [basePrice, setBasePrice] = useState(
-    product ? String(product.basePrice) : "",
-  );
-  const [productImage, setProductImage] = useState(product?.productImage ?? "");
-  const [categoryId, setCategoryId] = useState(product?.categoryId ?? "");
-  const [items, setItems] = useState<ItemRow[]>(
-    productItems.length > 0
-      ? productItems.map((i) => ({
-          key: i.id,
-          sku: i.sku,
-          price: String(i.price),
-          discountPrice: i.discountPrice != null ? String(i.discountPrice) : "",
-          qtyInStock: String(i.qtyInStock),
-          variants: variantsToText(i.variantsJson),
-        }))
-      : [
-          {
-            key: makeKey(),
-            sku: "",
-            price: "",
-            discountPrice: "",
-            qtyInStock: "",
-            variants: "",
-          },
-        ],
-  );
+  const form = useForm<ProductFormValues>({
+    resolver: zodResolver(productSchema) as any,
+    defaultValues: defaultValues(product, productItems),
+  });
 
-  function addItem() {
-    setItems((prev) => [
-      ...prev,
-      {
-        key: makeKey(),
-        sku: "",
-        price: "",
-        discountPrice: "",
-        qtyInStock: "",
-        variants: "",
-      },
-    ]);
-  }
+  const {
+    control,
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = form;
 
-  function removeItem(key: string) {
-    setItems((prev) =>
-      prev.length === 1 ? prev : prev.filter((i) => i.key !== key),
-    );
-  }
+  const {
+    fields: itemFields,
+    append: appendItem,
+    remove: removeItem,
+  } = useFieldArray({ control, name: "items" });
 
-  function updateItem(key: string, field: keyof ItemRow, value: string) {
-    setItems((prev) =>
-      prev.map((i) => (i.key === key ? { ...i, [field]: value } : i)),
-    );
-  }
-
-  function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-
-    if (!name.trim()) {
-      toast.error("يرجى إدخال اسم المنتج");
-      return;
-    }
-    if (!categoryId) {
-      toast.error("يرجى اختيار التصنيف");
-      return;
-    }
-
+  async function onSubmit(_data: ProductFormValues) {
     // UI only — no persistence. Real save wires in later.
+    // Simulate a brief delay so the user sees the loading state.
+    await new Promise((r) => setTimeout(r, 600));
     toast.success("تم الحفظ بنجاح");
     onDone?.();
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-6"
+      noValidate
+    >
+      {/* ─── Product fields ─── */}
       <div
         className={
           layout === "page"
@@ -140,69 +140,109 @@ export function ProductForm({
             : "grid gap-4"
         }
       >
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="name">اسم المنتج</Label>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="مثال: آيفون 15 برو"
-          />
-        </div>
+        {/* Name */}
+        <Field className="sm:col-span-2">
+          <FieldLabel htmlFor="name">اسم المنتج</FieldLabel>
+          <FieldContent>
+            <Input
+              id="name"
+              {...register("name")}
+              disabled={readOnly || isSubmitting}
+              placeholder="مثال: آيفون 15 برو"
+              aria-invalid={!!errors.name}
+            />
+            <FieldError errors={errors.name ? [errors.name] : undefined} />
+          </FieldContent>
+        </Field>
 
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="description">الوصف</Label>
-          <textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="وصف موجز للمنتج"
-            rows={3}
-            className="flex w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          />
-        </div>
+        {/* Description */}
+        <Field className="sm:col-span-2">
+          <FieldLabel htmlFor="description">الوصف</FieldLabel>
+          <FieldContent>
+            <Textarea
+              id="description"
+              {...register("description")}
+              disabled={readOnly || isSubmitting}
+              placeholder="وصف موجز للمنتج"
+              rows={3}
+              aria-invalid={!!errors.description}
+            />
+            <FieldError
+              errors={errors.description ? [errors.description] : undefined}
+            />
+          </FieldContent>
+        </Field>
 
-        <div className="space-y-2">
-          <Label htmlFor="basePrice">السعر الأساسي (ر.س)</Label>
-          <Input
-            id="basePrice"
-            type="number"
-            inputMode="numeric"
-            value={basePrice}
-            onChange={(e) => setBasePrice(e.target.value)}
-            placeholder="0"
-          />
-        </div>
+        {/* Base price */}
+        <Field>
+          <FieldLabel htmlFor="basePrice">السعر الأساسي (ر.س)</FieldLabel>
+          <FieldContent>
+            <Input
+              id="basePrice"
+              type="number"
+              inputMode="numeric"
+              {...register("basePrice")}
+              disabled={readOnly || isSubmitting}
+              placeholder="0"
+              aria-invalid={!!errors.basePrice}
+            />
+            <FieldError
+              errors={errors.basePrice ? [errors.basePrice] : undefined}
+            />
+          </FieldContent>
+        </Field>
 
-        <div className="space-y-2">
-          <Label htmlFor="categoryId">التصنيف</Label>
-          <Select value={categoryId} onValueChange={setCategoryId}>
-            <SelectTrigger id="categoryId" className="w-full">
-              <SelectValue placeholder="اختر التصنيف" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.categoryName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Category */}
+        <Field>
+          <FieldLabel htmlFor="categoryId">التصنيف</FieldLabel>
+          <FieldContent>
+            <Select
+              value={form.watch("categoryId")}
+              onValueChange={(value) =>
+                form.setValue("categoryId", value, { shouldValidate: true })
+              }
+              disabled={readOnly || isSubmitting}
+            >
+              <SelectTrigger id="categoryId" className="w-full">
+                <SelectValue placeholder="اختر التصنيف" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.categoryName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FieldError
+              errors={errors.categoryId ? [errors.categoryId] : undefined}
+            />
+          </FieldContent>
+        </Field>
 
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="productImage">رابط صورة المنتج</Label>
-          <Input
-            id="productImage"
-            value={productImage}
-            onChange={(e) => setProductImage(e.target.value)}
-            placeholder="https://..."
-          />
-        </div>
+        {/* Image URL */}
+        <Field className="sm:col-span-2">
+          <FieldLabel htmlFor="productImage">رابط صورة المنتج</FieldLabel>
+          <FieldContent>
+            <Input
+              id="productImage"
+              {...register("productImage")}
+              disabled={readOnly || isSubmitting}
+              placeholder="https://..."
+              aria-invalid={!!errors.productImage}
+            />
+            <FieldError
+              errors={
+                errors.productImage ? [errors.productImage] : undefined
+              }
+            />
+          </FieldContent>
+        </Field>
       </div>
 
       <Separator />
 
+      {/* ─── Variant items ─── */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
@@ -211,107 +251,287 @@ export function ProductForm({
               أضف متغيرات المنتج بأسعارها ومخزونها
             </p>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={addItem}>
-            <Plus className="h-4 w-4" />
-            إضافة متغير
-          </Button>
+          {!readOnly && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isSubmitting}
+              onClick={() =>
+                appendItem({
+                  sku: "",
+                  price: 0,
+                  discountPrice: null,
+                  qtyInStock: 0,
+                  variants: [{ key: "", value: "" }],
+                })
+              }
+            >
+              <Plus className="h-4 w-4" />
+              إضافة متغير
+            </Button>
+          )}
         </div>
 
-        <div className="space-y-3">
-          {items.map((item, index) => (
-            <div
-              key={item.key}
-              className="rounded-lg border bg-muted/30 p-3"
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">
-                  المتغير {index + 1}
-                </span>
-                <IconActionButton
-                  type="button"
-                  size="icon-sm"
-                  label="حذف المتغير"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => removeItem(item.key)}
-                  disabled={items.length === 1}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </IconActionButton>
-              </div>
+        {errors.items?.message && (
+          <p className="text-sm font-normal text-destructive">
+            {errors.items.message}
+          </p>
+        )}
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">رمز المنتج (SKU)</Label>
-                  <Input
-                    value={item.sku}
-                    onChange={(e) =>
-                      updateItem(item.key, "sku", e.target.value)
-                    }
-                    placeholder="SKU-001"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">المخزون</Label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    value={item.qtyInStock}
-                    onChange={(e) =>
-                      updateItem(item.key, "qtyInStock", e.target.value)
-                    }
-                    placeholder="0"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">السعر (ر.س)</Label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    value={item.price}
-                    onChange={(e) =>
-                      updateItem(item.key, "price", e.target.value)
-                    }
-                    placeholder="0"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">سعر الخصم (ر.س)</Label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    value={item.discountPrice}
-                    onChange={(e) =>
-                      updateItem(item.key, "discountPrice", e.target.value)
-                    }
-                    placeholder="اختياري"
-                  />
-                </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label className="text-xs">المتغيرات (variantsJson)</Label>
-                  <Input
-                    value={item.variants}
-                    onChange={(e) =>
-                      updateItem(item.key, "variants", e.target.value)
-                    }
-                    placeholder="اللون: أسود، التخزين: 256GB"
-                  />
-                </div>
-              </div>
-            </div>
+        <div className="space-y-3">
+          {itemFields.map((itemField, itemIndex) => (
+            <VariantItemCard
+              key={itemField.id}
+              itemIndex={itemIndex}
+              control={control}
+              register={register}
+              errors={errors}
+              isSubmitting={isSubmitting}
+              readOnly={readOnly}
+              canRemove={itemFields.length > 1}
+              onRemove={() => removeItem(itemIndex)}
+            />
           ))}
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2 pt-2">
-        {onDone ? (
-          <Button type="button" variant="outline" onClick={onDone}>
-            إلغاء
+      {/* ─── Actions ─── */}
+      {!readOnly && (
+        <div className="flex items-center justify-end gap-2 pt-2">
+          {onDone ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSubmitting}
+              onClick={onDone}
+            >
+              إلغاء
+            </Button>
+          ) : null}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            )}
+            {isSubmitting
+              ? "جاري الحفظ..."
+              : isEdit
+                ? "حفظ التغييرات"
+                : "إضافة المنتج"}
           </Button>
-        ) : null}
-        <Button type="submit">
-          {isEdit ? "حفظ التغييرات" : "إضافة المنتج"}
-        </Button>
-      </div>
+        </div>
+      )}
     </form>
+  );
+}
+
+/* ─── Internal sub-component ─── */
+
+interface VariantItemCardProps {
+  itemIndex: number;
+  control: ReturnType<typeof useForm<ProductFormValues>>["control"];
+  register: ReturnType<typeof useForm<ProductFormValues>>["register"];
+  errors: ReturnType<typeof useForm<ProductFormValues>>["formState"]["errors"];
+  isSubmitting: boolean;
+  readOnly: boolean;
+  canRemove: boolean;
+  onRemove: () => void;
+}
+
+function VariantItemCard({
+  itemIndex,
+  control,
+  register,
+  errors,
+  isSubmitting,
+  readOnly,
+  canRemove,
+  onRemove,
+}: VariantItemCardProps) {
+  const {
+    fields: variantFields,
+    append: appendVariant,
+    remove: removeVariant,
+  } = useFieldArray({
+    control,
+    name: `items.${itemIndex}.variants`,
+  });
+
+  const itemErrors = errors.items?.[itemIndex];
+
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs font-medium text-muted-foreground">
+          المتغير {itemIndex + 1}
+        </span>
+        {!readOnly && (
+          <IconActionButton
+            type="button"
+            size="icon-sm"
+            label="حذف المتغير"
+            className="text-destructive hover:text-destructive"
+            onClick={onRemove}
+            disabled={!canRemove || isSubmitting}
+          >
+            <Trash2 className="h-4 w-4" />
+          </IconActionButton>
+        )}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {/* SKU */}
+        <Field>
+          <FieldLabel className="text-xs">رمز المنتج (SKU)</FieldLabel>
+          <FieldContent>
+            <Input
+              {...register(`items.${itemIndex}.sku`)}
+              disabled={readOnly || isSubmitting}
+              placeholder="SKU-001"
+              aria-invalid={!!itemErrors?.sku}
+            />
+            <FieldError
+              errors={itemErrors?.sku ? [itemErrors.sku as { message?: string }] : undefined}
+            />
+          </FieldContent>
+        </Field>
+
+        {/* Qty in stock */}
+        <Field>
+          <FieldLabel className="text-xs">المخزون</FieldLabel>
+          <FieldContent>
+            <Input
+              type="number"
+              inputMode="numeric"
+              {...register(`items.${itemIndex}.qtyInStock`)}
+              disabled={readOnly || isSubmitting}
+              placeholder="0"
+              aria-invalid={!!itemErrors?.qtyInStock}
+            />
+            <FieldError
+              errors={
+                itemErrors?.qtyInStock
+                  ? [itemErrors.qtyInStock as { message?: string }]
+                  : undefined
+              }
+            />
+          </FieldContent>
+        </Field>
+
+        {/* Price */}
+        <Field>
+          <FieldLabel className="text-xs">السعر (ر.س)</FieldLabel>
+          <FieldContent>
+            <Input
+              type="number"
+              inputMode="numeric"
+              {...register(`items.${itemIndex}.price`)}
+              disabled={readOnly || isSubmitting}
+              placeholder="0"
+              aria-invalid={!!itemErrors?.price}
+            />
+            <FieldError
+              errors={
+                itemErrors?.price
+                  ? [itemErrors.price as { message?: string }]
+                  : undefined
+              }
+            />
+          </FieldContent>
+        </Field>
+
+        {/* Discount price */}
+        <Field>
+          <FieldLabel className="text-xs">سعر الخصم (ر.س)</FieldLabel>
+          <FieldContent>
+            <Input
+              type="number"
+              inputMode="numeric"
+              {...register(`items.${itemIndex}.discountPrice`)}
+              disabled={readOnly || isSubmitting}
+              placeholder="اختياري"
+              aria-invalid={!!itemErrors?.discountPrice}
+            />
+            <FieldError
+              errors={
+                itemErrors?.discountPrice
+                  ? [itemErrors.discountPrice as { message?: string }]
+                  : undefined
+              }
+            />
+          </FieldContent>
+        </Field>
+
+        {/* ─── Structured variants (key/value rows) ─── */}
+        <Field className="sm:col-span-2">
+          <FieldLabel className="text-xs">المتغيرات</FieldLabel>
+          <FieldContent className="space-y-2">
+            {variantFields.map((vf, vIndex) => (
+              <div key={vf.id} className="flex items-start gap-2">
+                <Input
+                  {...register(
+                    `items.${itemIndex}.variants.${vIndex}.key`,
+                  )}
+                  disabled={readOnly || isSubmitting}
+                  placeholder="مثال: اللون"
+                  className="flex-1"
+                  aria-invalid={
+                    !!itemErrors?.variants?.[vIndex]?.key
+                  }
+                />
+                <Input
+                  {...register(
+                    `items.${itemIndex}.variants.${vIndex}.value`,
+                  )}
+                  disabled={readOnly || isSubmitting}
+                  placeholder="مثال: أسود"
+                  className="flex-1"
+                  aria-invalid={
+                    !!itemErrors?.variants?.[vIndex]?.value
+                  }
+                />
+                {!readOnly && variantFields.length > 1 && (
+                  <IconActionButton
+                    type="button"
+                    size="icon-sm"
+                    label="حذف"
+                    variant="ghost"
+                    className="mt-0.5 shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeVariant(vIndex)}
+                    disabled={isSubmitting}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </IconActionButton>
+                )}
+              </div>
+            ))}
+            {!readOnly && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={isSubmitting}
+                onClick={() => appendVariant({ key: "", value: "" })}
+                className="gap-1 text-muted-foreground"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                إضافة متغير
+              </Button>
+            )}
+            <FieldError
+              errors={
+                itemErrors?.variants
+                  ? [
+                      ...(Array.isArray(itemErrors.variants)
+                        ? itemErrors.variants
+                        : []),
+                    ]
+                  : undefined
+              }
+            />
+          </FieldContent>
+        </Field>
+      </div>
+    </div>
   );
 }

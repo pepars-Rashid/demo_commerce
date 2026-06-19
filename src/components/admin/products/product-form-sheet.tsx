@@ -20,12 +20,14 @@ interface ProductFormSheetProps {
   categories: ProductCategory[];
   product?: Product;
   productItems?: ProductItem[];
+  readOnly?: boolean;
 }
 
 export function ProductFormSheet({
   categories,
   product,
   productItems,
+  readOnly = false,
 }: ProductFormSheetProps) {
   const router = useRouter();
   const [open, setOpen] = useState(true);
@@ -43,7 +45,7 @@ export function ProductFormSheet({
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
-        side="left"
+        side="right"
         className="w-full gap-0 overflow-y-auto sm:max-w-xl"
       >
         <SheetHeader>
@@ -61,6 +63,7 @@ export function ProductFormSheet({
             categories={categories}
             product={product}
             productItems={productItems}
+            readOnly={readOnly}
             onDone={() => handleOpenChange(false)}
           />
         </div>

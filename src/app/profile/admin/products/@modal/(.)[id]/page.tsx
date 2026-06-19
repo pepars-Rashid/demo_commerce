@@ -5,12 +5,17 @@ import {
   getProductItemsByProductId,
 } from "@/lib/mock/products";
 
+interface InterceptedEditProductPageProps {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string }>;
+}
+
 export default async function InterceptedEditProductPage({
   params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+  searchParams,
+}: InterceptedEditProductPageProps) {
   const { id } = await params;
+  const { view } = await searchParams;
   const product = getProductById(id);
 
   if (!product) {
@@ -22,6 +27,7 @@ export default async function InterceptedEditProductPage({
       categories={categories}
       product={product}
       productItems={getProductItemsByProductId(product.id)}
+      readOnly={view === "true"}
     />
   );
 }
