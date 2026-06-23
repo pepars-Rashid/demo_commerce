@@ -40,6 +40,7 @@ export const product = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     description: varchar("description", { length: 2000 }),
     basePrice: decimal("base_price", { precision: 12, scale: 2 }).notNull(),
+    totalStock: integer("total_stock").notNull().default(0),
     productImage: varchar("product_image", { length: 2048 }), // single hero URL
     ...timestamps,
   },

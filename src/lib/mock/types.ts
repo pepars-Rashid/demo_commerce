@@ -24,6 +24,7 @@ export interface Product {
   name: string;
   description: string | null;
   basePrice: number;
+  totalStock: number;
   productImage: string | null;
 }
 

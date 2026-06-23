@@ -38,7 +38,6 @@ import { categories, getCategoryName } from "@/lib/mock/categories";
 import {
   products,
   getProductItemsByProductId,
-  getProductTotalStock,
 } from "@/lib/mock/products";
 import { formatCurrency, formatNumber } from "@/lib/admin-format";
 
@@ -209,7 +208,7 @@ export default function ProductsPage() {
               {filtered.map((product, index) => {
                 const itemCount =
                   getProductItemsByProductId(product.id).length;
-                const totalStock = getProductTotalStock(product.id);
+                const totalStock = product.totalStock;
                 return (
                   <TableRow key={product.id}>
                     <TableCell>

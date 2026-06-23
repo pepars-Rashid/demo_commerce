@@ -81,7 +81,7 @@ export async function seedProducts() {
 
       const [prod] = await db
         .insert(product)
-        .values({ categoryId, name: p.title, description: p.description, basePrice: p.price.toFixed(2), productImage: p.thumbnail })
+        .values({ categoryId, name: p.title, description: p.description, basePrice: p.price.toFixed(2), totalStock: p.stock, productImage: p.thumbnail })
         .returning({ id: product.id });
 
       // Insert with null SKU → get serial ID → update SKU

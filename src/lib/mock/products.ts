@@ -7,6 +7,7 @@ export const products: Product[] = [
     name: "آيفون 15 برو",
     description: "هاتف ذكي بشريحة A17 Pro وكاميرا احترافية ثلاثية.",
     basePrice: 4999,
+    totalStock: 60,
     productImage: null,
   },
   {
@@ -15,6 +16,7 @@ export const products: Product[] = [
     name: "سامسونج جالاكسي S24",
     description: "شاشة Dynamic AMOLED وأداء فائق مع ميزات الذكاء الاصطناعي.",
     basePrice: 3799,
+    totalStock: 30,
     productImage: null,
   },
   {
@@ -23,6 +25,7 @@ export const products: Product[] = [
     name: "ماك بوك إير M3",
     description: "حاسوب محمول خفيف الوزن بمعالج M3 وبطارية تدوم طوال اليوم.",
     basePrice: 5499,
+    totalStock: 12,
     productImage: null,
   },
   {
@@ -31,6 +34,7 @@ export const products: Product[] = [
     name: "ديل XPS 13",
     description: "تصميم أنيق وشاشة InfinityEdge عالية الدقة.",
     basePrice: 4299,
+    totalStock: 4,
     productImage: null,
   },
   {
@@ -39,6 +43,7 @@ export const products: Product[] = [
     name: "جاكيت رجالي شتوي",
     description: "جاكيت دافئ مقاوم للماء بتصميم عصري.",
     basePrice: 349,
+    totalStock: 60,
     productImage: null,
   },
   {
@@ -47,6 +52,7 @@ export const products: Product[] = [
     name: "فستان نسائي صيفي",
     description: "فستان قطني مريح بألوان زاهية.",
     basePrice: 229,
+    totalStock: 3,
     productImage: null,
   },
   {
@@ -55,6 +61,7 @@ export const products: Product[] = [
     name: "ماكينة قهوة أوتوماتيكية",
     description: "تحضير قهوة احترافية بلمسة زر واحدة.",
     basePrice: 899,
+    totalStock: 0,
     productImage: null,
   },
 ];
