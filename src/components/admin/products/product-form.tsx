@@ -25,6 +25,7 @@ import { IconActionButton } from "@/components/admin/icon-action-button";
 import type { Product, ProductCategory, ProductItem } from "@/lib/mock/types";
 import type { ProductFormValues } from "@/lib/zod/product";
 import { productSchema } from "@/lib/zod/product";
+import { createProduct, updateProduct } from "@/lib/actions/product";
 
 interface ProductFormProps {
   categories: ProductCategory[];
@@ -118,12 +119,25 @@ export function ProductForm({
     remove: removeItem,
   } = useFieldArray({ control, name: "items" });
 
-  async function onSubmit(_data: ProductFormValues) {
-    // UI only — no persistence. Real save wires in later.
-    // Simulate a brief delay so the user sees the loading state.
-    await new Promise((r) => setTimeout(r, 600));
-    toast.success("تم الحفظ بنجاح");
-    onDone?.();
+  async function onSubmit(data: ProductFormValues) {
+    try {
+      if (isEdit && product?.id) {
+        const productId = parseInt(product.id, 10);
+        if (!Number.isNaN(productId)) {
+          await updateProduct(productId, data);
+        }
+      } else {
+        await createProduct(data);
+      }
+      // Server actions handle redirect on success.
+      // toast is shown only if redirect doesn't happen (shouldn't occur).
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "حدث خطأ أثناء الحفظ",
+      );
+    }
   }
 
   return (
