@@ -18,6 +18,16 @@
 - Result: role checked once at login, then cached in JWT — zero DB queries on subsequent requests
 - Changing role in DB → logout + login to refresh
 
+## Role authorization — two guards, two behaviors
+| Guard | Location | Behavior | When to use |
+|---|---|---|---|
+| `requireAdmin()` | `src/lib/auth/require-admin.ts` | `auth()` + DB query on `users.role` + `redirect()` | Admin **layout** guard — one call per page request |
+| `assertAdmin()` | inline in each server action (`src/lib/actions/product.ts`) | `auth()` + checks `session.user.role` from JWT only (no DB query) | Inside **server actions** before mutations |
+
+- `requireAdmin` returns the session; layout renders `null` if redirected
+- `assertAdmin` throws `new Error("غير مصرح")` on failure
+- **Rule**: UI pages must NOT call either — layout handles it
+
 ## Role system
 - `users.role` column: `"user"` (default) | `"superAdmin"`
 - Set via DB directly (seed script or direct update), no admin panel yet
@@ -40,6 +50,7 @@
 - Form calls `signIn("credentials", { email, password, redirectTo: "/" })`
 - `authorize` callback: `safeParseAsync` → lookup user by email → verify password → return user or `null`
 - Invalid credentials → `setError("root", ...)` — generic message, not field-specific
+- NOTE: login form uses `redirect: false` then manually pushes to `/` (does not use `redirectTo` option)
 
 ## Error positioning
 | Error type | Position |
@@ -65,6 +76,7 @@
 import { auth, signIn, signOut } from "@/lib/auth/auth"      // server
 import { signIn, signOut } from "next-auth/react"              // client
 import { signupAction } from "@/lib/actions/auth"              // signup Server Action
+import { requireAdmin } from "@/lib/auth/require-admin"        // admin layout guard
 import { loginSchema } from "@/lib/zod/login"                  // login validation
 import { signupSchema } from "@/lib/zod/signup"                // signup validation
 ```
@@ -72,10 +84,13 @@ import { signupSchema } from "@/lib/zod/signup"                // signup validat
 ## Directory structure
 ```
 src/lib/auth/
-├── auth.ts          # NextAuth config
-└── password.ts      # bcryptjs hash/verify
+├── auth.ts            # NextAuth config
+├── auth-types.d.ts    # Type augmentation (User.role)
+├── password.ts        # bcryptjs hash/verify
+└── require-admin.ts   # Server-side admin guard (DB role check + redirect)
 src/lib/actions/
-└── auth.ts          # signup Server Action
+└── auth.ts            # signup Server Action
 src/lib/zod/
-├── login.ts         # Login form schema
-└── signup.ts        # Signup form schema
+├── login.ts           # Login form schema
+└── signup.ts          # Signup form schema
+```
