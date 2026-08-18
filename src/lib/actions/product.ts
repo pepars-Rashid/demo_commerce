@@ -6,7 +6,7 @@ import {
   productItem as productItemTable,
   productCategory as productCategoryTable,
 } from "@/db/schema";
-import { eq, sql, like, count, and, asc, desc, inArray } from "drizzle-orm";
+import { eq, sql, ilike, count, and, asc, desc, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/auth";
@@ -58,7 +58,7 @@ export interface ProductItemDetail {
   discountPrice: string | null;
   images: string[];
   variantsJson: Record<string, string>;
-}
+ }
 
 // ─── Auth helper ────────────────────────────────────────────────────────────
 
@@ -87,11 +87,11 @@ export async function getProducts(params: {
   const offset = (page - 1) * pageSize;
 
   // Build WHERE clauses
-  const conditions = [sql`${productTable.deletedAt} is null`];
+  const conditions = [isNull(productTable.deletedAt)];
 
   if (params.search) {
     const term = `%${params.search}%`;
-    conditions.push(like(productTable.name, term));
+    conditions.push(ilike(productTable.name, term));
   }
 
   if (params.categoryId != null) {
@@ -146,7 +146,7 @@ export async function getProducts(params: {
       .where(
         and(
           inArray(productItemTable.productId, productIds),
-          sql`${productItemTable.deletedAt} is null`,
+          isNull(productItemTable.deletedAt),
         ),
       )
       .groupBy(productItemTable.productId);
@@ -169,37 +169,38 @@ export async function getProducts(params: {
 export async function getProductById(
   id: number,
 ): Promise<ProductDetail | null> {
-  const [prod] = await db
-    .select({
-      id: productTable.id,
-      categoryId: productTable.categoryId,
-      name: productTable.name,
-      description: productTable.description,
-      basePrice: productTable.basePrice,
-      totalStock: productTable.totalStock,
-      productImage: productTable.productImage,
-      categoryName: productCategoryTable.categoryName,
-    })
-    .from(productTable)
-    .leftJoin(
-      productCategoryTable,
-      eq(productTable.categoryId, productCategoryTable.id),
-    )
-    .where(and(eq(productTable.id, id), sql`${productTable.deletedAt} is null`))
-    .limit(1);
+  const [[prod], items] = await Promise.all([
+    db
+      .select({
+        id: productTable.id,
+        categoryId: productTable.categoryId,
+        name: productTable.name,
+        description: productTable.description,
+        basePrice: productTable.basePrice,
+        totalStock: productTable.totalStock,
+        productImage: productTable.productImage,
+        categoryName: productCategoryTable.categoryName,
+      })
+      .from(productTable)
+      .leftJoin(
+        productCategoryTable,
+        eq(productTable.categoryId, productCategoryTable.id),
+      )
+      .where(and(eq(productTable.id, id), isNull(productTable.deletedAt)))
+      .limit(1),
+    db
+      .select()
+      .from(productItemTable)
+      .where(
+        and(
+          eq(productItemTable.productId, id),
+          isNull(productItemTable.deletedAt),
+        ),
+      )
+      .orderBy(asc(productItemTable.id)),
+  ]);
 
   if (!prod) return null;
-
-  const items = await db
-    .select()
-    .from(productItemTable)
-    .where(
-      and(
-        eq(productItemTable.productId, id),
-        sql`${productItemTable.deletedAt} is null`,
-      ),
-    )
-    .orderBy(asc(productItemTable.id));
 
   return {
     ...prod,
@@ -248,17 +249,19 @@ export async function createProduct(data: ProductFormValues) {
     })
     .returning({ id: productTable.id });
 
-  // Insert items
-  for (const item of items) {
-    await db.insert(productItemTable).values({
+  // Insert items (bulk)
+  await db.insert(productItemTable).values(
+    items.map((item) => ({
       productId: newProduct.id,
       sku: item.sku || null,
       qtyInStock: Number(item.qtyInStock),
       price: String(item.price),
-      discountPrice: item.discountPrice != null ? String(item.discountPrice) : null,
-      variantsJson: item.variants.length > 0 ? rowVariantsToJson(item.variants) : {},
-    });
-  }
+      discountPrice:
+        item.discountPrice != null ? String(item.discountPrice) : null,
+      variantsJson:
+        item.variants.length > 0 ? rowVariantsToJson(item.variants) : {},
+    })),
+  );
 
   revalidatePath("/profile/admin/products");
   redirect("/profile/admin/products");
@@ -300,17 +303,19 @@ export async function updateProduct(id: number, data: ProductFormValues) {
     .delete(productItemTable)
     .where(eq(productItemTable.productId, id));
 
-  // Insert new items
-  for (const item of items) {
-    await db.insert(productItemTable).values({
+  // Insert new items (bulk)
+  await db.insert(productItemTable).values(
+    items.map((item) => ({
       productId: id,
       sku: item.sku || null,
       qtyInStock: Number(item.qtyInStock),
       price: String(item.price),
-      discountPrice: item.discountPrice != null ? String(item.discountPrice) : null,
-      variantsJson: item.variants.length > 0 ? rowVariantsToJson(item.variants) : {},
-    });
-  }
+      discountPrice:
+        item.discountPrice != null ? String(item.discountPrice) : null,
+      variantsJson:
+        item.variants.length > 0 ? rowVariantsToJson(item.variants) : {},
+    })),
+  );
 
   revalidatePath("/profile/admin/products");
   revalidatePath(`/profile/admin/products/${id}`);
@@ -324,13 +329,13 @@ export async function deleteProduct(id: number) {
 
   await db
     .update(productTable)
-    .set({ deletedAt: new Date() })
+    .set({ deletedAt: sql`now()` })
     .where(eq(productTable.id, id));
 
   // Also soft-delete its items
   await db
     .update(productItemTable)
-    .set({ deletedAt: new Date() })
+    .set({ deletedAt: sql`now()` })
     .where(eq(productItemTable.productId, id));
 
   revalidatePath("/profile/admin/products");
@@ -341,19 +346,16 @@ export async function deleteProduct(id: number) {
 export async function batchDeleteProducts(ids: number[]) {
   await assertAdmin();
 
-  const now = new Date();
-
   await db
     .update(productTable)
-    .set({ deletedAt: now })
+    .set({ deletedAt: sql`now()` })
     .where(inArray(productTable.id, ids));
 
-  for (const id of ids) {
-    await db
-      .update(productItemTable)
-      .set({ deletedAt: now })
-      .where(eq(productItemTable.productId, id));
-  }
+  // Bulk soft-delete all items for the given products
+  await db
+    .update(productItemTable)
+    .set({ deletedAt: sql`now()` })
+    .where(inArray(productItemTable.productId, ids));
 
   revalidatePath("/profile/admin/products");
 }
@@ -384,7 +386,7 @@ export async function getProductCategories() {
       categoryImage: productCategoryTable.categoryImage,
     })
     .from(productCategoryTable)
-    .where(sql`${productCategoryTable.deletedAt} is null`)
+    .where(isNull(productCategoryTable.deletedAt))
     .orderBy(asc(productCategoryTable.categoryName));
 
   return categories;
