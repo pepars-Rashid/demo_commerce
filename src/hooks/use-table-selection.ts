@@ -1,27 +1,33 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 
-interface UseTableSelectionOptions<T> {
+interface UseTableSelectionOptions<T, ID extends string | number> {
   items: readonly T[];
-  getId: (item: T) => string | number;
+  getId: (item: T) => ID;
+  /**
+   * When true (default), selection clears whenever `items` changes reference.
+   * NOTE: this fires on ANY items change (page nav, search, filter, parent
+   * re-render with a new array), not just page changes. Keep `items` referentially
+   * stable between navigations (e.g. from a server component) to avoid surprises.
+   */
   autoClearOnChange?: boolean;
 }
 
-export function useTableSelection<T>(
-  options: UseTableSelectionOptions<T>
+export function useTableSelection<T, ID extends string | number>(
+  options: UseTableSelectionOptions<T, ID>
 ) {
   const { items, getId, autoClearOnChange = true } = options;
-  
+
   // Single source of truth - just store IDs
-  const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<ID>>(new Set());
 
   // Derived state
   const selectedCount = selectedIds.size;
-  const isAllSelected = items.length > 0 && 
-    items.every(item => selectedIds.has(getId(item)));
+  const isAllSelected =
+    items.length > 0 && items.every((item) => selectedIds.has(getId(item)));
 
   // Toggle single item
-  const toggleSelect = useCallback((id: string | number) => {
-    setSelectedIds(prev => {
+  const toggleSelect = useCallback((id: ID) => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -31,12 +37,12 @@ export function useTableSelection<T>(
 
   // Toggle all
   const toggleSelectAll = useCallback(() => {
-    setSelectedIds(prev => {
-      const allSelected = items.length > 0 && 
-        items.every(item => prev.has(getId(item)));
-      
+    setSelectedIds((prev) => {
+      const allSelected =
+        items.length > 0 && items.every((item) => prev.has(getId(item)));
+
       if (allSelected) return new Set();
-      return new Set(items.map(item => getId(item)));
+      return new Set(items.map((item) => getId(item)));
     });
   }, [items, getId]);
 
@@ -47,10 +53,10 @@ export function useTableSelection<T>(
 
   // Get selected items (if needed)
   const getSelectedItems = useCallback(() => {
-    return items.filter(item => selectedIds.has(getId(item)));
+    return items.filter((item) => selectedIds.has(getId(item)));
   }, [items, selectedIds, getId]);
 
-  // Auto-clear on page change
+  // Auto-clear on items change (page nav, search, filter, refresh)
   useEffect(() => {
     if (autoClearOnChange) {
       clearSelection();
@@ -70,6 +76,6 @@ export function useTableSelection<T>(
     toggleSelectAll,
     clearSelection,
     getSelectedItems,
-    isSelected: (id: string | number) => selectedIds.has(id),
+    isSelected: (id: ID) => selectedIds.has(id),
   };
 }

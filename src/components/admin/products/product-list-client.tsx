@@ -98,16 +98,12 @@ export function ProductListClient({
     toggleSelectAll,
     clearSelection,
     getSelectedItems,
+    isSelected,
   } = useTableSelection({
     items: products,
     getId: (p) => p.id,
     autoClearOnChange: true,
   });
-
-  // Explicit unmount cleanup (safety net on top of the hook's own cleanup)
-  useEffect(() => {
-    return () => clearSelection();
-  }, [clearSelection]);
 
   function buildUrl(params: Record<string, string | undefined>) {
     const sp = new URLSearchParams(searchParams.toString());
@@ -157,7 +153,6 @@ export function ProductListClient({
       await deleteProduct(deleteTarget.id);
       toast.success(`تم حذف المنتج "${deleteTarget.name}"`);
       setDeleteTarget(null);
-      clearSelection();
       router.refresh();
     } catch {
       toast.error("حدث خطأ أثناء الحذف");
@@ -167,7 +162,7 @@ export function ProductListClient({
   }
 
   async function confirmBatchDelete() {
-    const ids = Array.from(selectedIds) as number[];
+    const ids = Array.from(selectedIds);
     const count = ids.length;
     setIsDeleting(true);
     try {
@@ -326,7 +321,7 @@ export function ProductListClient({
                       <div className="flex items-center justify-center">
                         <input
                           type="checkbox"
-                          checked={selectedIds.has(product.id)}
+                          checked={isSelected(product.id)}
                           onChange={() => toggleSelect(product.id)}
                           className="h-4 w-4 rounded border-input"
                           aria-label={`تحديد ${product.name}`}
