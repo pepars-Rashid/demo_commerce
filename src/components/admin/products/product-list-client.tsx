@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useMemo,
-  useState,
-  useCallback,
-  useRef,
-  useEffect,
-  useTransition,
-} from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -53,6 +46,7 @@ import { DeleteDialog } from "@/components/admin/delete-dialog";
 import { deleteProduct, batchDeleteProducts } from "@/lib/actions/product";
 import { formatCurrency, formatNumber } from "@/lib/admin-format";
 import { cn } from "@/lib/utils";
+import { useTableSelection } from "@/hooks/use-table-selection";
 import type { ProductListResult } from "@/lib/actions/product";
 
 interface ProductListClientProps {
@@ -76,9 +70,6 @@ export function ProductListClient({
 
   const [search, setSearch] = useState(searchValue);
   const [categoryId, setCategoryId] = useState(categoryIdValue);
-  const [selectedItems, setSelectedItems] = useState<
-    Map<number, { id: number; name: string }>
-  >(new Map());
   const [deleteTarget, setDeleteTarget] = useState<{
     id: number;
     name: string;
@@ -96,36 +87,27 @@ export function ProductListClient({
 
   const { products, totalPages, page } = initialData;
 
-  const allSelected = useMemo(
-    () => products.length > 0 && selectedItems.size === products.length,
-    [selectedItems, products],
-  );
+  // ─── Table selection (reusable hook) ───────────────────────────────
+  // Replaces the local selectedItems Map + hand-rolled toggle/isAllSelected
+  // logic. Selection auto-clears on page navigation via autoClearOnChange.
+  const {
+    selectedIds,
+    selectedCount,
+    isAllSelected,
+    toggleSelect,
+    toggleSelectAll,
+    clearSelection,
+    getSelectedItems,
+  } = useTableSelection({
+    items: products,
+    getId: (p) => p.id,
+    autoClearOnChange: true,
+  });
 
-  const toggleSelect = useCallback(
-    (id: number, name: string) => {
-      setSelectedItems((prev) => {
-        const next = new Map(prev);
-        if (next.has(id)) {
-          next.delete(id);
-        } else {
-          next.set(id, { id, name });
-        }
-        return next;
-      });
-    },
-    [],
-  );
-
-  const toggleSelectAll = useCallback(() => {
-    setSelectedItems((prev) => {
-      if (prev.size === products.length) {
-        return new Map();
-      }
-      return new Map(
-        products.map((p) => [p.id, { id: p.id, name: p.name }]),
-      );
-    });
-  }, [products]);
+  // Explicit unmount cleanup (safety net on top of the hook's own cleanup)
+  useEffect(() => {
+    return () => clearSelection();
+  }, [clearSelection]);
 
   function buildUrl(params: Record<string, string | undefined>) {
     const sp = new URLSearchParams(searchParams.toString());
@@ -175,6 +157,7 @@ export function ProductListClient({
       await deleteProduct(deleteTarget.id);
       toast.success(`تم حذف المنتج "${deleteTarget.name}"`);
       setDeleteTarget(null);
+      clearSelection();
       router.refresh();
     } catch {
       toast.error("حدث خطأ أثناء الحذف");
@@ -184,12 +167,12 @@ export function ProductListClient({
   }
 
   async function confirmBatchDelete() {
-    const ids = Array.from(selectedItems.keys());
+    const ids = Array.from(selectedIds) as number[];
     const count = ids.length;
     setIsDeleting(true);
     try {
       await batchDeleteProducts(ids);
-      setSelectedItems(new Map());
+      clearSelection();
       setBatchDeleteOpen(false);
       toast.success(`تم حذف ${formatNumber(count)} منتج`);
       router.refresh();
@@ -224,7 +207,7 @@ export function ProductListClient({
     <div className="space-y-6" dir="rtl">
       <PageHeader
         title="المنتجات"
-        description="إدارة المنتجات والمتغيرات والأسعار"
+        description="إدارة المنتجات والمتغيّرات والأسعار"
         action={
           <Button asChild>
             <Link href="/profile/admin/products/new">
@@ -282,17 +265,17 @@ export function ProductListClient({
           )}
         >
           {/* Batch delete bar */}
-          {selectedItems.size > 0 && (
+          {selectedCount > 0 && (
             <div className="flex items-center justify-between border-b bg-muted/40 px-4 py-2">
               <span className="text-sm text-muted-foreground">
-                تم تحديد {formatNumber(selectedItems.size)}{" "}
-                {selectedItems.size === 1 ? "منتج" : "منتجات"}
+                تم تحديد {formatNumber(selectedCount)}{" "}
+                {selectedCount === 1 ? "منتج" : "منتجات"}
               </span>
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSelectedItems(new Map())}
+                  onClick={() => clearSelection()}
                   disabled={isDeleting}
                 >
                   إلغاء التحديد
@@ -317,7 +300,7 @@ export function ProductListClient({
                   <div className="flex items-center justify-center">
                     <input
                       type="checkbox"
-                      checked={allSelected}
+                      checked={isAllSelected}
                       onChange={toggleSelectAll}
                       className="h-4 w-4 rounded border-input"
                       aria-label="تحديد الكل"
@@ -328,24 +311,23 @@ export function ProductListClient({
                 <TableHead>المنتج</TableHead>
                 <TableHead>التصنيف</TableHead>
                 <TableHead>السعر الأساسي</TableHead>
-                <TableHead>المتغيرات</TableHead>
+                <TableHead>المتغيّرات</TableHead>
                 <TableHead>المخزون</TableHead>
                 <TableHead className="text-start">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {products.map((product, index) => {
-                const rowNumber = (page - 1) * initialData.pageSize + index + 1;
+                const rowNumber =
+                  (page - 1) * initialData.pageSize + index + 1;
                 return (
                   <TableRow key={product.id}>
                     <TableCell>
                       <div className="flex items-center justify-center">
                         <input
                           type="checkbox"
-                          checked={selectedItems.has(product.id)}
-                          onChange={() =>
-                            toggleSelect(product.id, product.name)
-                          }
+                          checked={selectedIds.has(product.id)}
+                          onChange={() => toggleSelect(product.id)}
                           className="h-4 w-4 rounded border-input"
                           aria-label={`تحديد ${product.name}`}
                         />
@@ -418,7 +400,11 @@ export function ProductListClient({
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
-                      href={page > 1 ? buildUrl({ page: String(page - 1) }) : "#"}
+                      href={
+                        page > 1
+                          ? buildUrl({ page: String(page - 1) })
+                          : "#"
+                      }
                       onClick={(e) => {
                         if (page <= 1) {
                           e.preventDefault();
@@ -427,7 +413,9 @@ export function ProductListClient({
                         e.preventDefault();
                         handlePageChange(page - 1);
                       }}
-                      className={page <= 1 ? "pointer-events-none opacity-50" : ""}
+                      className={
+                        page <= 1 ? "pointer-events-none opacity-50" : ""
+                      }
                     />
                   </PaginationItem>
 
@@ -492,7 +480,7 @@ export function ProductListClient({
             </span>
             <span className="mt-3 block rounded-md border border-destructive/30 bg-destructive/5 p-3">
               <span className="block font-bold text-destructive">
-                "{deleteTarget?.name}"
+                {'"'}{deleteTarget?.name}{'"'}
               </span>
             </span>
           </>
@@ -508,17 +496,17 @@ export function ProductListClient({
           <>
             هل أنت متأكد من حذف{" "}
             <span className="font-bold text-destructive">
-              {formatNumber(selectedItems.size)}{" "}
-              {selectedItems.size === 1 ? "منتج" : "منتجات"}
+              {formatNumber(selectedCount)}{" "}
+              {selectedCount === 1 ? "منتج" : "منتجات"}
             </span>
             ؟
             <span className="mt-2 block text-muted-foreground">
               لا يمكن التراجع عن هذا الإجراء.
             </span>
             <span className="mt-3 block max-h-40 overflow-y-auto rounded-md border border-destructive/30 bg-destructive/5 p-3">
-              {Array.from(selectedItems.values()).map((s) => (
+              {getSelectedItems().map((s) => (
                 <span key={s.id} className="block font-bold text-destructive">
-                  "{s.name}"
+                  {'"'}{s.name}{'"'}
                 </span>
               ))}
             </span>
