@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, useState, useCallback, useTransition } from "react";
+import {
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useTransition,
+} from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -45,6 +52,7 @@ import { IconActionButton } from "@/components/admin/icon-action-button";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
 import { deleteProduct, batchDeleteProducts } from "@/lib/actions/product";
 import { formatCurrency, formatNumber } from "@/lib/admin-format";
+import { cn } from "@/lib/utils";
 import type { ProductListResult } from "@/lib/actions/product";
 
 interface ProductListClientProps {
@@ -64,40 +72,58 @@ export function ProductListClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [search, setSearch] = useState(searchValue);
   const [categoryId, setCategoryId] = useState(categoryIdValue);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selectedItems, setSelectedItems] = useState<
+    Map<number, { id: number; name: string }>
+  >(new Map());
   const [deleteTarget, setDeleteTarget] = useState<{
     id: number;
     name: string;
   } | null>(null);
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear pending debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, []);
 
   const { products, totalPages, page } = initialData;
 
   const allSelected = useMemo(
-    () => products.length > 0 && selected.size === products.length,
-    [selected, products],
+    () => products.length > 0 && selectedItems.size === products.length,
+    [selectedItems, products],
   );
 
-  const toggleSelect = useCallback((id: number) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
+  const toggleSelect = useCallback(
+    (id: number, name: string) => {
+      setSelectedItems((prev) => {
+        const next = new Map(prev);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.set(id, { id, name });
+        }
+        return next;
+      });
+    },
+    [],
+  );
 
   const toggleSelectAll = useCallback(() => {
-    setSelected((prev) => {
+    setSelectedItems((prev) => {
       if (prev.size === products.length) {
-        return new Set();
+        return new Map();
       }
-      return new Set(products.map((p) => p.id));
+      return new Map(
+        products.map((p) => [p.id, { id: p.id, name: p.name }]),
+      );
     });
   }, [products]);
 
@@ -116,9 +142,12 @@ export function ProductListClient({
 
   function handleSearchChange(value: string) {
     setSearch(value);
-    startTransition(() => {
-      router.push(buildUrl({ search: value || undefined, page: undefined }));
-    });
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      startTransition(() => {
+        router.push(buildUrl({ search: value || undefined, page: undefined }));
+      });
+    }, 500);
   }
 
   function handleCategoryChange(value: string) {
@@ -141,26 +170,33 @@ export function ProductListClient({
 
   async function confirmDelete() {
     if (!deleteTarget) return;
+    setIsDeleting(true);
     try {
       await deleteProduct(deleteTarget.id);
       toast.success(`تم حذف المنتج "${deleteTarget.name}"`);
       setDeleteTarget(null);
-      startTransition(() => router.refresh());
+      router.refresh();
     } catch {
       toast.error("حدث خطأ أثناء الحذف");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
-  async function handleBatchDelete() {
-    const ids = Array.from(selected);
+  async function confirmBatchDelete() {
+    const ids = Array.from(selectedItems.keys());
     const count = ids.length;
+    setIsDeleting(true);
     try {
       await batchDeleteProducts(ids);
-      setSelected(new Set());
+      setSelectedItems(new Map());
+      setBatchDeleteOpen(false);
       toast.success(`تم حذف ${formatNumber(count)} منتج`);
-      startTransition(() => router.refresh());
+      router.refresh();
     } catch {
       toast.error("حدث خطأ أثناء الحذف");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -239,23 +275,38 @@ export function ProductListClient({
           }
         />
       ) : (
-        <div className="rounded-lg border">
+        <div
+          className={cn(
+            "rounded-lg border transition-opacity",
+            isPending && "opacity-60",
+          )}
+        >
           {/* Batch delete bar */}
-          {selected.size > 0 && (
+          {selectedItems.size > 0 && (
             <div className="flex items-center justify-between border-b bg-muted/40 px-4 py-2">
               <span className="text-sm text-muted-foreground">
-                تم تحديد {formatNumber(selected.size)}{" "}
-                {selected.size === 1 ? "منتج" : "منتجات"}
+                تم تحديد {formatNumber(selectedItems.size)}{" "}
+                {selectedItems.size === 1 ? "منتج" : "منتجات"}
               </span>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleBatchDelete}
-                disabled={isPending}
-              >
-                <Trash2 className="h-4 w-4" />
-                حذف المحدد
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedItems(new Map())}
+                  disabled={isDeleting}
+                >
+                  إلغاء التحديد
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setBatchDeleteOpen(true)}
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  حذف المحدد
+                </Button>
+              </div>
             </div>
           )}
 
@@ -291,8 +342,10 @@ export function ProductListClient({
                       <div className="flex items-center justify-center">
                         <input
                           type="checkbox"
-                          checked={selected.has(product.id)}
-                          onChange={() => toggleSelect(product.id)}
+                          checked={selectedItems.has(product.id)}
+                          onChange={() =>
+                            toggleSelect(product.id, product.name)
+                          }
                           className="h-4 w-4 rounded border-input"
                           aria-label={`تحديد ${product.name}`}
                         />
@@ -431,10 +484,48 @@ export function ProductListClient({
       <DeleteDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        description={`هل أنت متأكد من حذف المنتج "${
-          deleteTarget?.name ?? ""
-        }"؟ لا يمكن التراجع عن هذا الإجراء.`}
+        description={
+          <>
+            هل أنت متأكد من حذف هذا المنتج؟
+            <span className="mt-2 block text-muted-foreground">
+              لا يمكن التراجع عن هذا الإجراء.
+            </span>
+            <span className="mt-3 block rounded-md border border-destructive/30 bg-destructive/5 p-3">
+              <span className="block font-bold text-destructive">
+                "{deleteTarget?.name}"
+              </span>
+            </span>
+          </>
+        }
         onConfirm={confirmDelete}
+        disabled={isDeleting}
+      />
+
+      <DeleteDialog
+        open={batchDeleteOpen}
+        onOpenChange={(open) => !open && setBatchDeleteOpen(false)}
+        description={
+          <>
+            هل أنت متأكد من حذف{" "}
+            <span className="font-bold text-destructive">
+              {formatNumber(selectedItems.size)}{" "}
+              {selectedItems.size === 1 ? "منتج" : "منتجات"}
+            </span>
+            ؟
+            <span className="mt-2 block text-muted-foreground">
+              لا يمكن التراجع عن هذا الإجراء.
+            </span>
+            <span className="mt-3 block max-h-40 overflow-y-auto rounded-md border border-destructive/30 bg-destructive/5 p-3">
+              {Array.from(selectedItems.values()).map((s) => (
+                <span key={s.id} className="block font-bold text-destructive">
+                  "{s.name}"
+                </span>
+              ))}
+            </span>
+          </>
+        }
+        onConfirm={confirmBatchDelete}
+        disabled={isDeleting}
       />
     </div>
   );
