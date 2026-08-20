@@ -1,0 +1,53 @@
+import { auth } from "@/lib/auth/auth";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { LogoutButton } from "@/components/logout-button";
+import { Button } from "@/components/ui/button";
+import { LayoutDashboard } from "lucide-react";
+
+export async function ProfileContent() {
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  const { user } = session;
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-1 text-center">
+        <h1 className="text-2xl font-bold">الملف الشخصي</h1>
+        <p className="text-sm text-muted-foreground">
+          مرحباً، {user.name ?? "مستخدم"}
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        <div className="rounded-md bg-muted p-3">
+          <p className="text-sm font-medium">البريد الإلكتروني</p>
+          <p className="text-sm text-muted-foreground" dir="ltr">
+            {user.email}
+          </p>
+        </div>
+
+        {user.role === "superAdmin" && (
+          <>
+            <div className="rounded-md bg-muted p-3">
+              <p className="text-sm font-medium">الدور</p>
+              <p className="text-sm text-muted-foreground">مدير</p>
+            </div>
+            <Button variant="default" className="w-full" asChild>
+              <Link href="/profile/admin">
+                <LayoutDashboard className="ml-2 h-4 w-4" />
+                لوحة التحكم
+              </Link>
+            </Button>
+          </>
+        )}
+
+        <LogoutButton />
+      </div>
+    </div>
+  );
+}
