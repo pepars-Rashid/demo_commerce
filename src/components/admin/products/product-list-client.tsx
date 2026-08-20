@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import Link from "next/link";
 import {
   Eye,
+  Loader2,
   Package,
   Pencil,
   Plus,
@@ -67,6 +67,7 @@ export function ProductListClient({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
 
   const [search, setSearch] = useState(searchValue);
   const [categoryId, setCategoryId] = useState(categoryIdValue);
@@ -84,6 +85,13 @@ export function ProductListClient({
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     };
   }, []);
+
+  // Reset the navigation guard once the transition finishes
+  useEffect(() => {
+    if (!isPending && navigatingTo) {
+      setNavigatingTo(null);
+    }
+  }, [isPending, navigatingTo]);
 
   const { products, totalPages, page } = initialData;
 
@@ -146,6 +154,15 @@ export function ProductListClient({
     });
   }
 
+  // Block double-clicks — one navigation at a time
+  function handleNavigate(href: string) {
+    if (navigatingTo) return;
+    setNavigatingTo(href);
+    startTransition(() => {
+      router.push(href);
+    });
+  }
+
   async function confirmDelete() {
     if (!deleteTarget) return;
     setIsDeleting(true);
@@ -204,11 +221,16 @@ export function ProductListClient({
         title="المنتجات"
         description="إدارة المنتجات والمتغيّرات والأسعار"
         action={
-          <Button asChild>
-            <Link href="/profile/admin/products/new">
+          <Button
+            disabled={navigatingTo !== null}
+            onClick={() => handleNavigate("/profile/admin/products/new")}
+          >
+            {navigatingTo === "/profile/admin/products/new" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
               <Plus className="h-4 w-4" />
-              إضافة منتج
-            </Link>
+            )}
+            إضافة منتج
           </Button>
         }
       />
@@ -244,11 +266,18 @@ export function ProductListClient({
           title="لا توجد منتجات"
           description="لم يتم العثور على منتجات مطابقة. جرّب تعديل البحث أو أضف منتجاً جديداً."
           action={
-            <Button asChild variant="outline" size="sm">
-              <Link href="/profile/admin/products/new">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={navigatingTo !== null}
+              onClick={() => handleNavigate("/profile/admin/products/new")}
+            >
+              {navigatingTo === "/profile/admin/products/new" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
                 <Plus className="h-4 w-4" />
-                إضافة منتج
-              </Link>
+              )}
+              إضافة منتج
             </Button>
           }
         />
@@ -354,23 +383,42 @@ export function ProductListClient({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <IconActionButton label="عرض" asChild>
-                          <Link
-                            href={`/profile/admin/products/${product.id}?view=true`}
-                          >
+                        <IconActionButton
+                          label="عرض"
+                          disabled={navigatingTo !== null}
+                          onClick={() =>
+                            handleNavigate(
+                              `/profile/admin/products/${product.id}?view=true`,
+                            )
+                          }
+                        >
+                          {navigatingTo ===
+                          `/profile/admin/products/${product.id}?view=true` ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
                             <Eye className="h-4 w-4" />
-                          </Link>
+                          )}
                         </IconActionButton>
-                        <IconActionButton label="تعديل" asChild>
-                          <Link
-                            href={`/profile/admin/products/${product.id}`}
-                          >
+                        <IconActionButton
+                          label="تعديل"
+                          disabled={navigatingTo !== null}
+                          onClick={() =>
+                            handleNavigate(
+                              `/profile/admin/products/${product.id}`,
+                            )
+                          }
+                        >
+                          {navigatingTo ===
+                          `/profile/admin/products/${product.id}` ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
                             <Pencil className="h-4 w-4" />
-                          </Link>
+                          )}
                         </IconActionButton>
                         <IconActionButton
                           label="حذف"
                           className="text-destructive hover:text-destructive"
+                          disabled={navigatingTo !== null || isDeleting}
                           onClick={() =>
                             setDeleteTarget({
                               id: product.id,

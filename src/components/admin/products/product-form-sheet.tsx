@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -30,11 +29,10 @@ export function ProductFormSheet({
   readOnly = false,
 }: ProductFormSheetProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(true);
 
-  // Closing the sheet returns to the underlying list page.
+  // The sheet is open because this intercepted route is rendered.
+  // No useState — closing just navigates back to the list.
   function handleOpenChange(next: boolean) {
-    setOpen(next);
     if (!next) {
       router.back();
     }
@@ -43,7 +41,7 @@ export function ProductFormSheet({
   const isEdit = Boolean(product);
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
+    <Sheet open onOpenChange={handleOpenChange}>
       <SheetContent
         side="right"
         className="w-full gap-0 overflow-y-auto sm:max-w-xl"
