@@ -258,6 +258,7 @@ export async function createProduct(data: ProductFormValues) {
       price: String(item.price),
       discountPrice:
         item.discountPrice != null ? String(item.discountPrice) : null,
+      images: item.images ?? [],
       variantsJson:
         item.variants.length > 0 ? rowVariantsToJson(item.variants) : {},
     })),
@@ -312,6 +313,7 @@ export async function updateProduct(id: number, data: ProductFormValues) {
       price: String(item.price),
       discountPrice:
         item.discountPrice != null ? String(item.discountPrice) : null,
+      images: item.images ?? [],
       variantsJson:
         item.variants.length > 0 ? rowVariantsToJson(item.variants) : {},
     })),

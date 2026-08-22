@@ -8,28 +8,14 @@ import { Dropzone } from './dropzone';
 import { ProgressCircle } from './progress-circle';
 import { useUploader } from './uploader-provider';
 
-/**
- * Props for the ImageList component.
- *
- * @interface ImageListProps
- * @extends {React.HTMLAttributes<HTMLDivElement>}
- */
-export interface ImageListProps extends React.HTMLAttributes<HTMLDivElement> {
-  /**
-   * Whether the image deletion controls should be disabled.
-   */
+interface ImageListProps extends React.HTMLAttributes<HTMLDivElement> {
+  //  Disable the delete/cancel controls. 
   disabled?: boolean;
 }
 
-/**
- * Displays a grid of image previews with upload status and controls.
- *
- * @component
- * @example
- * ```tsx
- * <ImageList className="my-4" />
- * ```
- */
+
+// Grid of image previews with upload status and controls.
+
 const ImageList = React.forwardRef<HTMLDivElement, ImageListProps>(
   ({ className, disabled: initialDisabled, ...props }, ref) => {
     const { fileStates, removeFile, cancelUpload } = useUploader();
@@ -59,7 +45,7 @@ const ImageList = React.forwardRef<HTMLDivElement, ImageListProps>(
     return (
       <div
         ref={ref}
-        className={cn('mt-4 grid grid-cols-3 gap-2', className)}
+        className={cn('mt-4 flex flex-wrap gap-2', className)}
         {...props}
       >
         {fileStates.map((fileState) => {
@@ -68,7 +54,7 @@ const ImageList = React.forwardRef<HTMLDivElement, ImageListProps>(
             <div
               key={fileState.key}
               className={
-                'relative aspect-square h-full w-full rounded-md border-0 bg-muted p-0 shadow-md'
+                'group relative h-20 w-20 shrink-0 overflow-hidden rounded-md border-0 bg-muted p-0 shadow-md'
               }
             >
               {displayUrl ? (
@@ -96,7 +82,7 @@ const ImageList = React.forwardRef<HTMLDivElement, ImageListProps>(
               {displayUrl && !initialDisabled && (
                 <button
                   type="button"
-                  className="group pointer-events-auto absolute end-1 top-1 z-10 -translate-y-1/4 translate-x-1/4 rtl:-translate-x-1/4 transform rounded-full border border-muted-foreground bg-background p-1 shadow-md transition-all hover:scale-110"
+                  className="pointer-events-auto absolute end-1 top-1 z-10 rounded-full border border-muted-foreground bg-background p-1 shadow-md opacity-0 transition-all hover:scale-110 focus-visible:opacity-100 group-hover:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (fileState.status === 'UPLOADING') {
@@ -122,17 +108,8 @@ const ImageList = React.forwardRef<HTMLDivElement, ImageListProps>(
 );
 ImageList.displayName = 'ImageList';
 
-/**
- * Props for the ImageDropzone component.
- *
- * @interface ImageDropzoneProps
- * @extends {React.HTMLAttributes<HTMLDivElement>}
- */
-export interface ImageDropzoneProps
-  extends React.HTMLAttributes<HTMLDivElement> {
-  /**
-   * Whether the dropzone is disabled.
-   */
+interface ImageDropzoneProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Disable the dropzone. */
   disabled?: boolean;
 
   /**
@@ -141,26 +118,13 @@ export interface ImageDropzoneProps
    */
   dropzoneOptions?: Omit<DropzoneOptions, 'disabled' | 'onDrop'>;
 
-  /**
-   * Ref for the input element inside the Dropzone.
-   */
+  //  Ref for the input element inside the Dropzone. */
   inputRef?: React.Ref<HTMLInputElement>;
 }
 
-/**
- * A dropzone component specifically for image uploads.
- *
- * @component
- * @example
- * ```tsx
- * <ImageDropzone
- *   dropzoneOptions={{
- *     maxFiles: 5,
- *     maxSize: 1024 * 1024 * 2, // 2MB
- *   }}
- * />
- * ```
- */
+
+//  A dropzone component specifically for image uploads.
+
 const ImageDropzone = React.forwardRef<HTMLDivElement, ImageDropzoneProps>(
   ({ dropzoneOptions, className, disabled, inputRef, ...props }, ref) => {
     return (
@@ -181,57 +145,29 @@ const ImageDropzone = React.forwardRef<HTMLDivElement, ImageDropzoneProps>(
 );
 ImageDropzone.displayName = 'ImageDropzone';
 
-/**
- * Props for the ImageUploader component.
- *
- * @interface ImageUploaderProps
- * @extends {React.HTMLAttributes<HTMLDivElement>}
- */
-export interface ImageUploaderProps
-  extends React.HTMLAttributes<HTMLDivElement> {
-  /**
-   * Maximum number of images allowed.
-   */
+interface ImageUploaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  //  Maximum number of images allowed. 
   maxFiles?: number;
 
-  /**
-   * Maximum file size in bytes.
-   */
+  // Maximum file size in bytes. 
   maxSize?: number;
 
-  /**
-   * Whether the uploader is disabled.
-   */
+  //  Disable the uploader. 
   disabled?: boolean;
 
-  /**
-   * Additional className for the dropzone component.
-   */
+  //  Additional className for the dropzone component. 
   dropzoneClassName?: string;
 
-  /**
-   * Additional className for the image list component.
-   */
+  //  Additional className for the image list component. 
   imageListClassName?: string;
 
-  /**
-   * Ref for the input element inside the Dropzone.
-   */
+  //  Ref for the input element inside the Dropzone. 
   inputRef?: React.Ref<HTMLInputElement>;
 }
 
-/**
- * A complete image uploader component with dropzone and image grid preview.
- *
- * @component
- * @example
- * ```tsx
- * <ImageUploader
- *   maxFiles={10}
- *   maxSize={1024 * 1024 * 5} // 5MB
- * />
- * ```
- */
+
+// A complete image uploader with dropzone and image grid preview.
+ 
 const ImageUploader = React.forwardRef<HTMLDivElement, ImageUploaderProps>(
   (
     {
