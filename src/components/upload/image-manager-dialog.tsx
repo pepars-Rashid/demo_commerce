@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { Expand, Loader2, Trash2 } from "lucide-react";
 import {
   Dialog,
@@ -174,6 +175,15 @@ export function ImageManagerDialog({
   title = "إدارة الصور",
   description,
 }: ImageManagerDialogProps) {
+  const pathname = usePathname();
+
+  // If the route changes (e.g. navigating back then re-editing the same
+  // product), force the dialog closed so it can't come back "stuck open".
+  React.useEffect(() => {
+    onOpenChange(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">

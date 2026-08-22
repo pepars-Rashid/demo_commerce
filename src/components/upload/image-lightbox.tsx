@@ -19,14 +19,19 @@ export function ImageLightbox({
   alt,
   onDelete,
 }: ImageLightboxProps) {
-  // Close on Escape key
+  // Close on Escape key. Registered in CAPTURE phase so it runs BEFORE Radix's
+  // document-level Escape handler, and stopPropagation prevents the Dialog
+  // beneath this lightbox from also closing.
   React.useEffect(() => {
     if (!open) return;
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onOpenChange(false);
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
+      onOpenChange(false);
     }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [open, onOpenChange]);
 
   if (!open) return null;
