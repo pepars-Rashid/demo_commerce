@@ -202,6 +202,7 @@ export function ImageManagerDialog({
         </DialogHeader>
 
         <UploaderProvider
+          autoUpload={true}
           uploadFn={async ({ file, signal, onProgressChange }) => {
             const res = await uploadFiles("imageManager", {
               files: [file],
