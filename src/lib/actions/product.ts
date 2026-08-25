@@ -8,7 +8,6 @@ import {
 } from "@/db/schema";
 import { eq, sql, ilike, count, and, asc, desc, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/auth";
 import { productSchema } from "@/lib/zod/product";
 import type { ProductFormValues } from "@/lib/zod/product";
@@ -265,7 +264,7 @@ export async function createProduct(data: ProductFormValues) {
   );
 
   revalidatePath("/profile/admin/products");
-  redirect("/profile/admin/products");
+  return { success: true as const, id: newProduct.id };
 }
 
 // ─── UPDATE: Product + replace items ────────────────────────────────────────
@@ -321,7 +320,7 @@ export async function updateProduct(id: number, data: ProductFormValues) {
 
   revalidatePath("/profile/admin/products");
   revalidatePath(`/profile/admin/products/${id}`);
-  redirect("/profile/admin/products");
+  return { success: true as const, id };
 }
 
 // ─── DELETE: Soft delete single product ─────────────────────────────────────

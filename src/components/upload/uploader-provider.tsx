@@ -84,7 +84,10 @@ type UploaderContextType<TOptions = unknown> = {
   cancelUpload: (key: string) => void;
 
   /** Start uploading files */
-  uploadFiles: (keysToUpload?: string[], options?: TOptions) => Promise<void>;
+  uploadFiles: (
+    keysToUpload?: string[],
+    options?: TOptions,
+  ) => Promise<{ key: string; url?: string }[]>;
 
   /** Reset all files */
   resetFiles: () => void;
@@ -216,9 +219,9 @@ export function UploaderProvider<TOptions = unknown>({
           (!keysToUpload || keysToUpload.includes(fileState.key)),
       );
 
-      if (filesToUpload.length === 0) return;
+      if (filesToUpload.length === 0) return [];
 
-      await Promise.all(
+      const results = await Promise.all(
         filesToUpload.map(async (fileState) => {
           try {
             const abortController = new AbortController();
@@ -257,6 +260,8 @@ export function UploaderProvider<TOptions = unknown>({
             if (onUploadCompleted) {
               void onUploadCompleted(completedFile);
             }
+
+            return { key: fileState.key, url: uploadResult?.url };
           } catch (err: unknown) {
             if (
               err instanceof Error &&
@@ -279,9 +284,12 @@ export function UploaderProvider<TOptions = unknown>({
                 error: errorMessage,
               });
             }
+            return { key: fileState.key, url: undefined };
           }
         }),
       );
+
+      return results;
     },
     [fileStates, updateFileState, uploadFn, onUploadCompleted],
   );

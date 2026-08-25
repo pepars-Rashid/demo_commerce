@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Expand, ImagePlus, Images, Loader2, Plus, Trash2 } from "lucide-react";
@@ -105,6 +106,7 @@ export function ProductForm({
   readOnly = false,
 }: ProductFormProps) {
   const isEdit = Boolean(product);
+  const router = useRouter();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema) as any,
@@ -136,11 +138,15 @@ export function ProductForm({
         if (!Number.isNaN(productId)) {
           await updateProduct(productId, data);
         }
+        toast.success("تم حفظ التغييرات بنجاح");
+        // Go back to where we came from (closes the modal too).
+        router.back();
       } else {
         await createProduct(data);
+        toast.success("تمت إضافة المنتج بنجاح");
+        // Stay on the page with a blank form so another product can be added.
+        form.reset(defaultValues());
       }
-      // Server actions handle redirect on success.
-      // toast is shown only if redirect doesn't happen (shouldn't occur).
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -321,6 +327,7 @@ export function ProductForm({
           onOpenChange={setHeroDialogOpen}
           initialImages={heroImage ? [heroImage] : []}
           maxFiles={1}
+          replaceMode
           readOnly={readOnly}
           title="صورة المنتج"
           description="اختر الصورة الرئيسية للمنتج — مطلوبة"
