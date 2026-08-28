@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Expand, ImagePlus, Images, Loader2, Plus, Trash2 } from "lucide-react";
@@ -36,6 +35,8 @@ interface ProductFormProps {
   product?: Product;
   productItems?: ProductItem[];
   onDone?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+  onSaved?: () => void;
   layout?: "sheet" | "page";
   readOnly?: boolean;
 }
@@ -102,11 +103,12 @@ export function ProductForm({
   product,
   productItems = [],
   onDone,
+  onDirtyChange,
+  onSaved,
   layout = "sheet",
   readOnly = false,
 }: ProductFormProps) {
   const isEdit = Boolean(product);
-  const router = useRouter();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema) as any,
@@ -117,8 +119,13 @@ export function ProductForm({
     control,
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = form;
+
+  // Report dirty state to the parent so the leave-guard can arm / disarm.
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const [heroDialogOpen, setHeroDialogOpen] = useState(false);
   const [heroLightboxOpen, setHeroLightboxOpen] = useState(false);
@@ -138,14 +145,15 @@ export function ProductForm({
         if (!Number.isNaN(productId)) {
           await updateProduct(productId, data);
         }
-        toast.success("تم حفظ التغييرات بنجاح");
-        // Go back to where we came from (closes the modal too).
-        router.back();
+        toast.success("تم حفظ التغيير بنجاح");
+        onDirtyChange?.(false);
+        onSaved?.();
       } else {
         await createProduct(data);
         toast.success("تمت إضافة المنتج بنجاح");
         // Stay on the page with a blank form so another product can be added.
         form.reset(defaultValues());
+        onDirtyChange?.(false);
       }
     } catch (error) {
       toast.error(
@@ -229,7 +237,10 @@ export function ProductForm({
             <Select
               value={categoryValue}
               onValueChange={(value) =>
-                form.setValue("categoryId", value, { shouldValidate: true })
+                form.setValue("categoryId", value, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
               }
               disabled={readOnly || isSubmitting}
             >
@@ -292,7 +303,7 @@ export function ProductForm({
                         size="sm"
                         className="text-destructive hover:text-destructive"
                         disabled={isSubmitting}
-                        onClick={() => form.setValue("productImage", "")}
+                        onClick={() => form.setValue("productImage", "", { shouldDirty: true })}
                       >
                         <Trash2 className="h-4 w-4" />
                         إزالة
@@ -334,6 +345,7 @@ export function ProductForm({
           onSave={(images) => {
             form.setValue("productImage", images[0] ?? "", {
               shouldValidate: true,
+              shouldDirty: true,
             });
             setHeroDialogOpen(false);
           }}
@@ -350,7 +362,7 @@ export function ProductForm({
               readOnly
                 ? undefined
                 : () => {
-                    form.setValue("productImage", "");
+                    form.setValue("productImage", "", { shouldDirty: true });
                     setHeroLightboxOpen(false);
                   }
             }
@@ -429,7 +441,7 @@ export function ProductForm({
               إلغاء
             </Button>
           ) : null}
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={!isDirty || isSubmitting}>
             {isSubmitting && (
               <Loader2 className="h-4 w-4 animate-spin" />
             )}
@@ -721,7 +733,7 @@ function VariantItemCard({
           title={`صور المتغير ${itemIndex + 1}`}
           description="الصور اختيارية — حتى 5 صور لكل متغير"
           onSave={(images) => {
-            setValue(`items.${itemIndex}.images`, images);
+            setValue(`items.${itemIndex}.images`, images, { shouldDirty: true });
             setImagesOpen(false);
           }}
         />

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,11 +46,6 @@ export default async function EditProductPage({
     <div className="mx-auto max-w-3xl space-y-6" dir="rtl">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" size="icon">
-            <Link href="/profile/admin/products" aria-label="رجوع">
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
               {isView ? "تفاصيل المنتج" : "تعديل المنتج"}
