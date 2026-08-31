@@ -127,3 +127,13 @@ users:                  id, name, email, emailVerified, image, password, role
 - `ProductForm` client component submits via server actions (`createProduct`/`updateProduct`)
 - `rowVariantsToJson` helper in `@/lib/actions/product.ts` converts form variant rows → `variantsJson`
 - Sonner toasts for success/error feedback
+
+## Unsaved Changes Guard (products — built)
+Implemented via `src/hooks/use-leave-guard.ts` + `src/components/admin/unsaved-changes-dialog.tsx`. Applies to edit/create product forms (both sheet modal and full page).
+- `ProductForm` reports dirty state upward via `onDirtyChange` (RHF `isDirty`); also passes `onSaved`.
+- `useLeaveGuard(isDirty)` returns `{ showModal, guard, cancel, confirm, disarm }`; render `<UnsavedChangesDialog>` with it.
+- **Arm/disarm**: sentinel history entry + `popstate`/`beforeunload` listeners active only while dirty.
+- **Guard exits**: wrap navigate fns (`cancel`, X, sheet-close, page back arrow) in `guard(fn)` → shows dialog when dirty, navigates when clean.
+- **Confirm** disarms **before** navigating (prevents popstate re-trigger loop); **Disarm** must be called before save-navigate.
+- **Sheet open state is derived from the URL** (`usePathname()` matches the modal route) — NOT `useState`, because Cache Components / React `<Activity>` preserves component state (so a `useState(open)` sticks closed and won't reopen the same product).
+- Image manager `setValue` calls use `shouldDirty: true` so image edits mark the form dirty.
