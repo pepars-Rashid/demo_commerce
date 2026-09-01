@@ -172,10 +172,10 @@ function ImageManagerDialogInner({
                   >
                     <Expand className="h-4 w-4 text-muted-foreground" />
                   </button>
-                  {/* Delete button (desktop hover) */}
+                  {/* Delete button (desktop hover only — hidden on mobile to avoid ghost deletes) */}
                   <button
                     type="button"
-                    className="absolute end-1 top-1 z-10 rounded-full border border-muted-foreground bg-background p-1 shadow-md opacity-0 transition-all hover:scale-110 focus-visible:opacity-100 group-hover:opacity-100"
+                    className="absolute end-1 top-1 z-10 max-sm:hidden rounded-full border border-muted-foreground bg-background p-1 shadow-md opacity-0 transition-all hover:scale-110 focus-visible:opacity-100 group-hover:opacity-100"
                     onClick={() =>
                       setSavedImages((prev) => prev.filter((u) => u !== url))
                     }

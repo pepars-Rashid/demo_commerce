@@ -23,7 +23,7 @@ const placeholderStats = [
   },
   {
     title: "الإيرادات",
-    value: "٠ ر.س",
+    value: "٠ $",
     icon: DollarSign,
     description: "إجمالي الإيرادات",
   },

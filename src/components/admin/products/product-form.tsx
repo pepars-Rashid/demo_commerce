@@ -213,7 +213,7 @@ export function ProductForm({
 
         {/* Base price */}
         <Field>
-          <FieldLabel htmlFor="basePrice">السعر الأساسي (ر.س)</FieldLabel>
+          <FieldLabel htmlFor="basePrice">السعر الأساسي $</FieldLabel>
           <FieldContent>
             <Input
               id="basePrice"
@@ -297,17 +297,6 @@ export function ProductForm({
                         <ImagePlus className="h-4 w-4" />
                         تغيير الصورة
                       </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        disabled={isSubmitting}
-                        onClick={() => form.setValue("productImage", "", { shouldDirty: true })}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        إزالة
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -358,14 +347,6 @@ export function ProductForm({
             onOpenChange={setHeroLightboxOpen}
             src={heroImage}
             alt="صورة المنتج"
-            onDelete={
-              readOnly
-                ? undefined
-                : () => {
-                    form.setValue("productImage", "", { shouldDirty: true });
-                    setHeroLightboxOpen(false);
-                  }
-            }
           />
         )}
       </div>
@@ -559,7 +540,7 @@ function VariantItemCard({
 
         {/* Price */}
         <Field>
-          <FieldLabel className="text-xs">السعر (ر.س)</FieldLabel>
+          <FieldLabel className="text-xs">السعر $</FieldLabel>
           <FieldContent>
             <Input
               type="number"
@@ -581,7 +562,7 @@ function VariantItemCard({
 
         {/* Discount price */}
         <Field>
-          <FieldLabel className="text-xs">سعر الخصم (ر.س)</FieldLabel>
+          <FieldLabel className="text-xs">سعر الخصم $</FieldLabel>
           <FieldContent>
             <Input
               type="number"

@@ -1,8 +1,6 @@
 // Shared formatting helpers for the admin panel (Arabic / RTL).
 
-const currencyFormatter = new Intl.NumberFormat("ar-SA", {
-  style: "currency",
-  currency: "SAR",
+const currencyNumberFormatter = new Intl.NumberFormat("ar-SA", {
   maximumFractionDigits: 0,
 });
 
@@ -23,7 +21,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat("ar-SA", {
 });
 
 export function formatCurrency(value: number): string {
-  return currencyFormatter.format(value);
+  return `$${currencyNumberFormatter.format(value)}`;
 }
 
 export function formatNumber(value: number): string {

@@ -82,7 +82,7 @@ const ImageList = React.forwardRef<HTMLDivElement, ImageListProps>(
               {displayUrl && !initialDisabled && (
                 <button
                   type="button"
-                  className="pointer-events-auto absolute end-1 top-1 z-10 rounded-full border border-muted-foreground bg-background p-1 shadow-md opacity-0 transition-all hover:scale-110 focus-visible:opacity-100 group-hover:opacity-100"
+                  className="pointer-events-auto absolute end-1 top-1 z-10 max-sm:hidden rounded-full border border-muted-foreground bg-background p-1 shadow-md opacity-0 transition-all hover:scale-110 focus-visible:opacity-100 group-hover:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (fileState.status === 'UPLOADING') {
