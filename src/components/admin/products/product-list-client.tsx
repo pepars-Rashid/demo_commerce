@@ -154,7 +154,7 @@ export function ProductListClient({
     });
   }
 
-  // Block double-clicks — one navigation at a time
+  // Block double-clicks — one navigation at a time.
   function handleNavigate(href: string) {
     if (navigatingTo) return;
     setNavigatingTo(href);

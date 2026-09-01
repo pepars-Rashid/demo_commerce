@@ -19,7 +19,15 @@ interface ProductFormPageProps {
 export function ProductFormPage(props: ProductFormPageProps) {
   const router = useRouter();
   const [isDirty, setIsDirty] = useState(false);
-  const { showModal, guard, cancel, confirm, disarm } = useLeaveGuard(isDirty);
+  const { showModal, guard, cancel, confirm, disarm, goBack } =
+    useLeaveGuard(isDirty);
+
+  // Return to the exact list state the user came from (its page/search/filter
+  // query) — recorded right before opening this page from the list. Falls back
+  // to the query-less list URL when nothing was captured (e.g. a direct load).
+  function exit() {
+    goBack(() => router.replace("/profile/admin/products"));
+  }
 
   return (
     <>
@@ -29,9 +37,7 @@ export function ProductFormPage(props: ProductFormPageProps) {
           variant="ghost"
           size="icon"
           aria-label="رجوع إلى قائمة المنتجات"
-          onClick={() =>
-            guard(() => router.replace("/profile/admin/products"))
-          }
+          onClick={() => guard(exit)}
         >
           <ArrowRight className="h-4 w-4" />
         </Button>
@@ -39,10 +45,10 @@ export function ProductFormPage(props: ProductFormPageProps) {
       <ProductForm
         {...props}
         layout="page"
-        onDone={() => guard(() => router.replace("/profile/admin/products"))}
+        onDone={() => guard(exit)}
         onSaved={() => {
           disarm();
-          router.replace("/profile/admin/products");
+          exit();
         }}
         onDirtyChange={setIsDirty}
       />

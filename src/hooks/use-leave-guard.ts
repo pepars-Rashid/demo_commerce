@@ -34,8 +34,10 @@ export function useLeaveGuard(isDirty: boolean) {
     // Push a sentinel on top of the current URL so a Browser Back pops it
     // while keeping the sheet/page mounted (URL unchanged) for us to show
     // the dialog instead of losing the changes to unmount.
-    window.history.pushState(null, "", window.location.href);
-    sentinelRef.current = true;
+    if (!sentinelRef.current) {
+      window.history.pushState(null, "", window.location.href);
+      sentinelRef.current = true;
+    }
 
     const handlePopState = () => {
       if (!isDirtyRef.current) return;
@@ -84,6 +86,25 @@ export function useLeaveGuard(isDirty: boolean) {
     isDirtyRef.current = false;
   }, []);
 
+  /**
+   * Navigate back to where the user came from (the list WITH its query/filters), so
+   * close/back behaves like the browser Back button, never resetting the list.
+   * While dirty a sentinel sits on top; a bare `back()` would pop just that and land
+   * back on the still-mounted form, so skip it atomically with `go(-2)`. Otherwise a
+   * plain `back()` returns to the list. If there is genuinely no prior entry
+   * (directly-loaded single-entry history), run `fallback`.
+   */
+  const goBack = useCallback((fallback: () => void) => {
+    if (sentinelRef.current) {
+      sentinelRef.current = false;
+      window.history.go(-2);
+    } else if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      fallback();
+    }
+  }, []);
+
   // ─── Modal actions ─────────────────────────────────────────────────────
   /** User chose to stay — hide the dialog and restore the sentinel. */
   const cancel = useCallback(() => {
@@ -106,5 +127,5 @@ export function useLeaveGuard(isDirty: boolean) {
     fn?.();
   }, [onConfirm]);
 
-  return { showModal, guard, cancel, confirm, disarm };
+  return { showModal, guard, cancel, confirm, disarm, goBack };
 }

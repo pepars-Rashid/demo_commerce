@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Sheet,
@@ -41,7 +41,8 @@ export function ProductFormSheet({
   const router = useRouter();
   const pathname = usePathname();
   const [isDirty, setIsDirty] = useState(false);
-  const { showModal, guard, cancel, confirm, disarm } = useLeaveGuard(isDirty);
+  const { showModal, guard, cancel, confirm, disarm, goBack } =
+    useLeaveGuard(isDirty);
 
   const isEdit = Boolean(product);
 
@@ -52,9 +53,28 @@ export function ProductFormSheet({
   // false — no stale false, no ghost portal.
   const open = isModalProductRoute(pathname);
 
-  // Close the sheet AND navigate to the list. Used by every guarded exit.
+  // Remount the form on every open. Cache Components / <Activity> preserve
+  // component state across route changes, so without this the form keeps its
+  // previously-typed values and stale dirty flag between opens (reopening a
+  // product would show discarded edits and re-prompt the unsaved-changes
+  // dialog even though nothing was touched). A fresh `key` rebuilds the form
+  // with the real defaultValues and `isDirty = false` each time we enter.
+  // Force a fresh `ProductForm` every time this sheet hides (even when opening the
+  // SAME product id again). Cache Components preserve state across navigations
+  // via <Activity>; an effect cleanup runs when Activity hides content (official
+  // pattern), so bumping `resetKey` remounts the form fresh (real defaultValues,
+  // `isDirty = false`) each time we come back.
+  const [resetKey, setResetKey] = useState(0);
+  useLayoutEffect(() => {
+    return () => setResetKey((k) => k + 1);
+  }, []);
+
+  // Close the sheet and return to the exact list state the user came from
+  // (its page/search/filter query) — recorded right before the modal opened.
+  // Falls back to the query-less list URL when nothing was captured (e.g. a
+  // directly-loaded page), which cannot happen for the intercepted sheet.
   function exit() {
-    router.replace("/profile/admin/products");
+    goBack(() => router.replace("/profile/admin/products"));
   }
 
   // X, outside click, or Escape → treat as a leave attempt.
@@ -83,6 +103,7 @@ export function ProductFormSheet({
           </SheetHeader>
           <div className="px-4 pb-6">
             <ProductForm
+              key={resetKey}
               categories={categories}
               product={product}
               productItems={productItems}
