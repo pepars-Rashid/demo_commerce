@@ -1,7 +1,7 @@
 // Shared formatting helpers for the admin panel (Arabic / RTL).
 
 const currencyNumberFormatter = new Intl.NumberFormat("ar-SA", {
-  maximumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
 
 const numberFormatter = new Intl.NumberFormat("ar-SA");
