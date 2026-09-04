@@ -28,6 +28,7 @@ import { ImageLightbox } from "@/components/upload/image-lightbox";
 import type { Product, ProductCategory, ProductItem } from "@/lib/mock/types";
 import type { ProductFormValues } from "@/lib/zod/product";
 import { productSchema } from "@/lib/zod/product";
+import type { Resolver } from "react-hook-form";
 import { createProduct, updateProduct } from "@/lib/actions/product";
 
 interface ProductFormProps {
@@ -46,12 +47,6 @@ function variantsToRows(variantsJson: Record<string, string>) {
     key,
     value,
   }));
-}
-
-function rowsToVariants(
-  rows: { key: string; value: string }[],
-): Record<string, string> {
-  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
 }
 
 function defaultValues(
@@ -111,7 +106,7 @@ export function ProductForm({
   const isEdit = Boolean(product);
 
   const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema) as any,
+    resolver: zodResolver(productSchema) as Resolver<ProductFormValues>,
     defaultValues: defaultValues(product, productItems),
   });
 

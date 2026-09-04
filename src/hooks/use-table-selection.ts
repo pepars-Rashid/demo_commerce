@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 
 interface UseTableSelectionOptions<T, ID extends string | number> {
   items: readonly T[];
@@ -19,6 +19,15 @@ export function useTableSelection<T, ID extends string | number>(
 
   // Single source of truth - just store IDs
   const [selectedIds, setSelectedIds] = useState<Set<ID>>(new Set());
+
+  // Track the previously seen `items` so we can reset selection while
+  // rendering (per React's "adjusting state during render" guidance) instead
+  // of in an effect — avoids a cascading render on page/search/filter change.
+  const [prevItems, setPrevItems] = useState(items);
+  if (autoClearOnChange && items !== prevItems) {
+    setPrevItems(items);
+    setSelectedIds(new Set());
+  }
 
   // Derived state
   const selectedCount = selectedIds.size;
@@ -55,18 +64,6 @@ export function useTableSelection<T, ID extends string | number>(
   const getSelectedItems = useCallback(() => {
     return items.filter((item) => selectedIds.has(getId(item)));
   }, [items, selectedIds, getId]);
-
-  // Auto-clear on items change (page nav, search, filter, refresh)
-  useEffect(() => {
-    if (autoClearOnChange) {
-      clearSelection();
-    }
-  }, [items, autoClearOnChange, clearSelection]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return clearSelection;
-  }, [clearSelection]);
 
   return {
     selectedIds,

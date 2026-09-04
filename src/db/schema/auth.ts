@@ -3,9 +3,7 @@ import {
   varchar,
   timestamp,
   integer,
-  boolean,
   primaryKey,
-  uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "@auth/core/adapters";

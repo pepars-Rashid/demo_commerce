@@ -21,14 +21,16 @@ export function useLeaveGuard(isDirty: boolean) {
   const [onConfirm, setOnConfirm] = useState<(() => void) | null>(null);
 
   // Ref mirrors isDirty synchronously so closures see the latest value.
+  // The ref is written inside the effect below (not during render), which is
+  // the React-recommended place for ref mutations.
   const isDirtyRef = useRef(isDirty);
-  isDirtyRef.current = isDirty;
 
   // Tracks whether a sentinel entry is currently on top of the history.
   const sentinelRef = useRef(false);
 
   // ─── Arm / disarm: sentinel + listeners while dirty ────────────────────
   useEffect(() => {
+    isDirtyRef.current = isDirty;
     if (!isDirty) return;
 
     // Push a sentinel on top of the current URL so a Browser Back pops it

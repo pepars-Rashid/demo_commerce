@@ -67,7 +67,11 @@ export function ProductListClient({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [isDeleting, setIsDeleting] = useState(false);
-  const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+  // Tracks which route is currently being navigated to (for the spinner).
+  // The pending state (disable + lock) is driven by `isPending` directly; this
+  // state only remembers the *target* href. It's harmless to keep it set after
+  // the transition ends, because it is only rendered while `isPending`.
+  const [pendingNavHref, setPendingNavHref] = useState<string | null>(null);
 
   const [search, setSearch] = useState(searchValue);
   const [categoryId, setCategoryId] = useState(categoryIdValue);
@@ -85,13 +89,6 @@ export function ProductListClient({
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     };
   }, []);
-
-  // Reset the navigation guard once the transition finishes
-  useEffect(() => {
-    if (!isPending && navigatingTo) {
-      setNavigatingTo(null);
-    }
-  }, [isPending, navigatingTo]);
 
   const { products, totalPages, page } = initialData;
 
@@ -156,8 +153,8 @@ export function ProductListClient({
 
   // Block double-clicks — one navigation at a time.
   function handleNavigate(href: string) {
-    if (navigatingTo) return;
-    setNavigatingTo(href);
+    if (isPending) return;
+    setPendingNavHref(href);
     startTransition(() => {
       router.push(href);
     });
@@ -222,10 +219,10 @@ export function ProductListClient({
         description="إدارة المنتجات والمتغيّرات والأسعار"
         action={
           <Button
-            disabled={navigatingTo !== null}
+            disabled={isPending}
             onClick={() => handleNavigate("/profile/admin/products/new")}
           >
-            {navigatingTo === "/profile/admin/products/new" ? (
+            {isPending && pendingNavHref === "/profile/admin/products/new" ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Plus className="h-4 w-4" />
@@ -269,10 +266,10 @@ export function ProductListClient({
             <Button
               variant="outline"
               size="sm"
-              disabled={navigatingTo !== null}
+              disabled={isPending}
               onClick={() => handleNavigate("/profile/admin/products/new")}
             >
-              {navigatingTo === "/profile/admin/products/new" ? (
+              {isPending && pendingNavHref === "/profile/admin/products/new" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Plus className="h-4 w-4" />
@@ -385,15 +382,16 @@ export function ProductListClient({
                       <div className="flex items-center gap-1">
                         <IconActionButton
                           label="عرض"
-                          disabled={navigatingTo !== null}
+                          disabled={isPending}
                           onClick={() =>
                             handleNavigate(
                               `/profile/admin/products/${product.id}?view=true`,
                             )
                           }
                         >
-                          {navigatingTo ===
-                          `/profile/admin/products/${product.id}?view=true` ? (
+                          {isPending &&
+                          pendingNavHref ===
+                            `/profile/admin/products/${product.id}?view=true` ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <Eye className="h-4 w-4" />
@@ -401,15 +399,16 @@ export function ProductListClient({
                         </IconActionButton>
                         <IconActionButton
                           label="تعديل"
-                          disabled={navigatingTo !== null}
+                          disabled={isPending}
                           onClick={() =>
                             handleNavigate(
                               `/profile/admin/products/${product.id}`,
                             )
                           }
                         >
-                          {navigatingTo ===
-                          `/profile/admin/products/${product.id}` ? (
+                          {isPending &&
+                          pendingNavHref ===
+                            `/profile/admin/products/${product.id}` ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <Pencil className="h-4 w-4" />
@@ -418,7 +417,7 @@ export function ProductListClient({
                         <IconActionButton
                           label="حذف"
                           className="text-destructive hover:text-destructive"
-                          disabled={navigatingTo !== null || isDeleting}
+                          disabled={isPending || isDeleting}
                           onClick={() =>
                             setDeleteTarget({
                               id: product.id,

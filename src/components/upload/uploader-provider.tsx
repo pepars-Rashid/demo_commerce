@@ -126,9 +126,6 @@ type ProviderProps<TOptions = unknown> = {
   /** Function to handle the actual upload */
   uploadFn: UploadFn<TOptions>;
 
-  /** External value to control the file states */
-  value?: FileState[];
-
   /** Whether files should be automatically uploaded when added */
   autoUpload?: boolean;
 };
@@ -180,22 +177,12 @@ export function UploaderProvider<TOptions = unknown>({
   onFileRemoved,
   onUploadCompleted,
   uploadFn,
-  value: externalValue,
   autoUpload = false,
 }: ProviderProps<TOptions>) {
-  const [fileStates, setFileStates] = React.useState<FileState[]>(
-    externalValue ?? [],
-  );
+  const [fileStates, setFileStates] = React.useState<FileState[]>([]);
   const [pendingAutoUploadKeys, setPendingAutoUploadKeys] = React.useState<
     string[] | null
   >(null);
-
-  // Sync with external value if provided
-  React.useEffect(() => {
-    if (externalValue) {
-      setFileStates(externalValue);
-    }
-  }, [externalValue]);
 
   const updateFileState = React.useCallback(
     (key: string, changes: Partial<FileState>) => {
@@ -369,8 +356,10 @@ export function UploaderProvider<TOptions = unknown>({
   // Handle auto-uploading files added to the queue
   React.useEffect(() => {
     if (pendingAutoUploadKeys && pendingAutoUploadKeys.length > 0) {
-      void uploadFiles(pendingAutoUploadKeys);
-      setPendingAutoUploadKeys(null);
+      const keys = pendingAutoUploadKeys;
+      // Clear the pending flag from the async continuation (not during render),
+      // so the effect body only performs the side-effect (the upload).
+      void uploadFiles(keys).finally(() => setPendingAutoUploadKeys(null));
     }
   }, [pendingAutoUploadKeys, uploadFiles]);
 
