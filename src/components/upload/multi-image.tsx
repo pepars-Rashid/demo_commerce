@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils';
 import { Trash2Icon, XIcon } from 'lucide-react';
 import * as React from 'react';
+import Image from 'next/image';
 import { type DropzoneOptions } from 'react-dropzone';
 import { Dropzone } from './dropzone';
 import { ProgressCircle } from './progress-circle';
@@ -58,10 +59,12 @@ const ImageList = React.forwardRef<HTMLDivElement, ImageListProps>(
               }
             >
               {displayUrl ? (
-                <img
-                  className="h-full w-full rounded-md object-cover"
+                <Image
+                  fill
+                  className="object-cover rounded-md"
                   src={displayUrl}
                   alt={fileState.file.name}
+                  sizes="80px"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-secondary">

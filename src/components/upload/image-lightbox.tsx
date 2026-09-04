@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 interface ImageLightboxProps {
   open: boolean;
@@ -74,13 +75,16 @@ export function ImageLightbox({
       )}
 
       {/* Image */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={alt ?? "معاينة الصورة"}
-        className="max-h-[85vh] max-w-[90vw] rounded-md object-contain shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      />
+      <div className="relative h-[85vh] w-[90vw]">
+        <Image
+          fill
+          src={src}
+          alt={alt ?? "معاينة الصورة"}
+          sizes="90vw"
+          className="object-contain rounded-md shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
     </div>
   );
 }

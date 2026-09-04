@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import { Expand, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -154,11 +155,12 @@ function ImageManagerDialogInner({
               key={url}
               className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-md border bg-muted"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
+                fill
                 src={url}
                 alt={`صورة ${i + 1}`}
-                className="h-full w-full cursor-pointer object-cover"
+                className="object-cover cursor-pointer"
+                sizes="80px"
                 onClick={() => setLightboxUrl(url)}
               />
               {!readOnly && (

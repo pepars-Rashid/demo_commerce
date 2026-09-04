@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Expand, ImagePlus, Images, Loader2, Plus, Trash2 } from "lucide-react";
@@ -263,11 +264,12 @@ export function ProductForm({
             {heroImage ? (
               <div className="flex flex-col items-start gap-3 rounded-lg border bg-muted/30 p-3">
                 <div className="group relative h-32 w-32 shrink-0 overflow-hidden rounded-md border bg-background">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
+                    fill
                     src={heroImage}
                     alt="صورة المنتج"
-                    className="h-full w-full object-cover"
+                    className="object-cover"
+                    sizes="128px"
                   />
                   <button
                     type="button"
@@ -661,11 +663,12 @@ function VariantItemCard({
                           key={img}
                           className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md border bg-background"
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
+                          <Image
+                            fill
                             src={img}
                             alt={`صورة ${imgIdx + 1}`}
-                            className="h-full w-full object-cover"
+                            className="object-cover"
+                            sizes="64px"
                           />
                         </div>
                       ),
