@@ -4,6 +4,7 @@ import { db } from "@/db/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { isAdmin } from "@/lib/auth/permissions";
 
 // Creates the auth promise WITHOUT awaiting it — deduped per request.
 // The layout passes this promise down; consumers resolve it inside <Suspense>.
@@ -16,8 +17,8 @@ export async function getAdminSession() {
     redirect("/login");
     return null;
   }
-  // JWT role check (fast, no DB) — blocks non-admins from even seeing the admin shell
-  if (session.user.role !== "superAdmin") {
+  // JWT role check (fast, no DB) — lets both admin roles into the admin shell.
+  if (!isAdmin(session.user.role)) {
     redirect("/profile");
     return null;
   }
@@ -34,7 +35,7 @@ export const requireAdmin = cache(async () => {
     columns: { role: true },
   });
 
-  if (dbUser?.role !== "superAdmin") {
+  if (!isAdmin(dbUser?.role)) {
     redirect("/profile");
     return null;
   }

@@ -10,7 +10,9 @@ import type { AdapterAccountType } from "@auth/core/adapters";
 import { timestamps } from "./helpers";
 
 // ── Role Values ────────────────────────────────────────────────────────────
-export const roleValues = ["user", "superAdmin"] as const;
+// Role ladder (ascending privilege): user → operationManager → superAdmin.
+// NOTE: schema change — the DB migration / seed must be pushed separately.
+export const roleValues = ["user", "operationManager", "superAdmin"] as const;
 export type Role = (typeof roleValues)[number];
 
 // ── Users ──────────────────────────────────────────────────────────────────

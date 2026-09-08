@@ -8,7 +8,7 @@ export type OrderStatus =
   | "delivered"
   | "cancelled";
 
-export type UserRole = "user" | "superAdmin";
+export type UserRole = "user" | "operationManager" | "superAdmin";
 
 export interface ProductCategory {
   id: string;

@@ -3,6 +3,7 @@ import type { UserRole } from "@/lib/mock/types";
 
 const roleLabels: Record<UserRole, string> = {
   user: "مستخدم",
+  operationManager: "مدير عمليات",
   superAdmin: "مدير النظام",
 };
 

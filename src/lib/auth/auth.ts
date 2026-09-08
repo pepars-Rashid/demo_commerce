@@ -39,7 +39,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.sub
       }
       if (token.role) {
-        session.user.role = token.role as "user" | "superAdmin"
+        session.user.role = token.role as "user" | "operationManager" | "superAdmin"
       }
       return session
     },
