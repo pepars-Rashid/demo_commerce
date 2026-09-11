@@ -4,6 +4,7 @@ import {
   getActiveCategories,
   getCategoryWithDescendants,
 } from "@/lib/actions/category";
+import { withCategoryDepth } from "@/lib/category-depth";
 
 interface InterceptedEditCategoryPageProps {
   params: Promise<{ id: string }>;
@@ -29,7 +30,9 @@ export default async function InterceptedEditCategoryPage({
 
   const excluded = await getCategoryWithDescendants(categoryId);
   const all = await getActiveCategories();
-  const options = all.filter((c) => !excluded.has(c.id));
+  const options = withCategoryDepth(
+    all.filter((c) => !excluded.has(c.id)),
+  );
 
   return (
     <CategoryFormSheet

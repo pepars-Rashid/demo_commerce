@@ -286,6 +286,12 @@ export async function createCategory(data: CategoryFormValues) {
     return { error: "slug_taken" as const };
   }
 
+  // Add parent validation right after the slug check, before the insert.
+  if (parentCategoryId) {
+    const result = await validateParent(null, Number(parentCategoryId));
+    if (result !== "ok") return { error: result };
+  }
+
   const [row] = await db
     .insert(productCategoryTable)
     .values({
@@ -301,19 +307,30 @@ export async function createCategory(data: CategoryFormValues) {
   return { success: true as const, id: row.id };
 }
 
-// ─── CYCLE guard: bounded upward walk ───────────────────────────────────────
-// Walks UP from the proposed parent, at most 3 hops (a 3-level tree). Correct
-// where a single-row join isn't: a prospective parent at level 3 needs its full
-// ancestor chain checked. Still ≤3 small indexed PK lookups, no recursion.
+// ─── Parent validator: merged cycle + max-depth guard ────────────────────────
+// Walks UP from the proposed parent, at most 2 hops (a 3-level tree).
+// Returns:
+//   "cycle"     → id appears in the ancestor chain (illegal)
+//   "max_depth" → proposed parent sits at level 3, so a child would be level 4
+//   "ok"        → safe to parent under newParentId
+//
+// Cycle and max-depth are two faces of the same upward walk: the ancestor chain
+// is exactly where a cycle forms, and its length is exactly the depth that a
+// child would sit at. One bounded walk yields both verdicts. Still ≤2 small
+// indexed PK lookups, no recursion.
 
-async function wouldCreateCycle(id: number, newParentId: number): Promise<boolean> {
-  if (id === newParentId) return true;
+async function validateParent(
+  id: number | null,        // null on create (no existing row to cycle into)
+  newParentId: number,
+): Promise<"ok" | "cycle" | "max_depth"> {
+  if (id !== null && id === newParentId) return "cycle";
 
   let currentId: number | null = newParentId;
+  let level = 1; // the proposed parent itself is level 1 of the walk
   const visited = new Set<number>();
 
-  for (let hop = 0; hop < 3 && currentId != null; hop++) {
-    if (currentId === id) return true;
+  for (let hop = 0; hop < 2 && currentId != null; hop++) {
+    if (id !== null && currentId === id) return "cycle";
     if (visited.has(currentId)) break; // pre-existing cycle, bail
     visited.add(currentId);
 
@@ -324,8 +341,13 @@ async function wouldCreateCycle(id: number, newParentId: number): Promise<boolea
       .limit(1);
 
     currentId = row?.parentId ?? null;
+    if (currentId != null) level++;
   }
-  return false;
+
+  // A child under a level-3 parent would be level 4 → reject.
+  if (level >= 3) return "max_depth";
+
+  return "ok";
 }
 
 // ─── UPDATE ─────────────────────────────────────────────────────────────────
@@ -355,10 +377,10 @@ export async function updateCategory(id: number, data: CategoryFormValues) {
     return { error: "slug_taken" as const };
   }
 
-  // Defense-in-depth: block self / ancestor parenting (bounded upward walk).
+  // Defense-in-depth: block self / ancestor / max-depth parenting.
   if (parentCategoryId) {
-    const parentId = Number(parentCategoryId);
-    if (await wouldCreateCycle(id, parentId)) return { error: "cycle" as const };
+    const result = await validateParent(id, Number(parentCategoryId));
+    if (result !== "ok") return { error: result };
   }
 
   await db

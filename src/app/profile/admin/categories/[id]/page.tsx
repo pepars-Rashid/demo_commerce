@@ -10,6 +10,7 @@ import {
   getActiveCategories,
   getCategoryWithDescendants,
 } from "@/lib/actions/category";
+import { withCategoryDepth } from "@/lib/category-depth";
 
 interface EditCategoryPageProps {
   params: Promise<{ id: string }>;
@@ -34,10 +35,13 @@ export default async function EditCategoryPage({
     notFound();
   }
 
-  // Exclude self + descendants from the parent options (prevent cycles).
+  // Exclude self + descendants from the parent options (prevent cycles), then
+  // compute the depth of each remaining option for the client-side max-depth check.
   const excluded = await getCategoryWithDescendants(categoryId);
   const all = await getActiveCategories();
-  const options = all.filter((c) => !excluded.has(c.id));
+  const options = withCategoryDepth(
+    all.filter((c) => !excluded.has(c.id)),
+  );
 
   return (
     <div className="mx-auto max-w-3xl space-y-6" dir="rtl">

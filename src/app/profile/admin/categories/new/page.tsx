@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CategoryFormPage } from "@/components/admin/categories/category-form-page";
 import { getActiveCategories } from "@/lib/actions/category";
+import { withCategoryDepth } from "@/lib/category-depth";
 
 export default async function NewCategoryPage() {
-  const options = await getActiveCategories();
+  const options = withCategoryDepth(await getActiveCategories());
 
   return (
     <div className="mx-auto max-w-3xl space-y-6" dir="rtl">

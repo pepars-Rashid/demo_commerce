@@ -31,6 +31,7 @@ import type { Resolver } from "react-hook-form";
 interface CategoryOption {
   id: number;
   categoryName: string;
+  depth: number;
 }
 
 export interface CategoryFormProps {
@@ -99,6 +100,16 @@ export function CategoryForm({
 
   async function onSubmit(data: CategoryFormValues) {
     try {
+      // Client-side max-depth guard: a child under a level-3 parent is level 4.
+      if (data.parentCategoryId) {
+        const parentId = Number(data.parentCategoryId);
+        const parentOption = options.find((o) => o.id === parentId);
+        if (parentOption && parentOption.depth >= 3) {
+          toast.error("لا يمكن أن يتجاوز التصنيف 3 مستويات");
+          return;
+        }
+      }
+
       if (isEdit && category?.id) {
         const id = parseInt(category.id, 10);
         if (!Number.isNaN(id)) {
@@ -111,6 +122,10 @@ export function CategoryForm({
             toast.error("لا يمكن جعل التصنيف أصلاً لنفسه أو لأحد فروعه");
             return;
           }
+          if (res && res.error === "max_depth") {
+            toast.error("لا يمكن أن يتجاوز التصنيف 3 مستويات");
+            return;
+          }
         }
         toast.success("تم حفظ التغيير بنجاح");
         onDirtyChange?.(false);
@@ -119,6 +134,14 @@ export function CategoryForm({
         const res = await createCategory(data);
         if (res && res.error === "slug_taken") {
           toast.error("الرابط (Slug) مستخدم بالفعل");
+          return;
+        }
+        if (res && res.error === "cycle") {
+          toast.error("لا يمكن جعل التصنيف أصلاً لنفسه أو لأحد فروعه");
+          return;
+        }
+        if (res && res.error === "max_depth") {
+          toast.error("لا يمكن أن يتجاوز التصنيف 3 مستويات");
           return;
         }
         toast.success("تمت إضافة التصنيف بنجاح");
