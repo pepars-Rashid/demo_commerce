@@ -26,7 +26,7 @@ export default async function ProductsPage({
       search: search || undefined,
       categoryId: Number.isNaN(categoryId) ? null : categoryId,
     }),
-    getProductCategories(),
+    getProductCategories(true),
   ]);
 
   return (

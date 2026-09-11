@@ -3,24 +3,19 @@
 import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
+  ArchiveRestore,
   Eye,
   Loader2,
-  Package,
   Pencil,
   Plus,
   Search,
+  Tags,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -38,43 +33,42 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/admin/page-header";
 import { EmptyState } from "@/components/admin/empty-state";
 import { IconActionButton } from "@/components/admin/icon-action-button";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
-import { deleteProduct, batchDeleteProducts } from "@/lib/actions/product";
-import { formatCurrency, formatNumber } from "@/lib/admin-format";
+import {
+  deleteCategory,
+  batchDeleteCategories,
+  restoreCategory,
+} from "@/lib/actions/category";
+import { formatNumber } from "@/lib/admin-format";
 import { cn } from "@/lib/utils";
 import { useTableSelection } from "@/hooks/use-table-selection";
-import type { ProductListResult } from "@/lib/actions/product";
+import type { CategoryListResult } from "@/lib/actions/category";
 
-interface ProductListClientProps {
-  initialData: ProductListResult;
-  categories: { id: number; categoryName: string; archived: boolean }[];
+interface CategoryListClientProps {
+  initialData: CategoryListResult;
+  onlyArchivedValue: string;
   searchValue: string;
-  categoryIdValue: string;
 }
 
-export function ProductListClient({
+export function CategoryListClient({
   initialData,
-  categories,
+  onlyArchivedValue,
   searchValue,
-  categoryIdValue,
-}: ProductListClientProps) {
+}: CategoryListClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [isDeleting, setIsDeleting] = useState(false);
-  // Tracks which route is currently being navigated to (for the spinner).
-  // The pending state (disable + lock) is driven by `isPending` directly; this
-  // state only remembers the *target* href. It's harmless to keep it set after
-  // the transition ends, because it is only rendered while `isPending`.
   const [pendingNavHref, setPendingNavHref] = useState<string | null>(null);
 
   const [search, setSearch] = useState(searchValue);
-  const [categoryId, setCategoryId] = useState(categoryIdValue);
+  const [onlyArchived, setOnlyArchived] = useState(
+    onlyArchivedValue === "true",
+  );
   const [deleteTarget, setDeleteTarget] = useState<{
     id: number;
     name: string;
@@ -83,18 +77,14 @@ export function ProductListClient({
 
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Clear pending debounce timer on unmount
   useEffect(() => {
     return () => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     };
   }, []);
 
-  const { products, totalPages, page } = initialData;
+  const { categories, totalPages, page } = initialData;
 
-  // ─── Table selection (reusable hook) ───────────────────────────────
-  // Replaces the local selectedItems Map + hand-rolled toggle/isAllSelected
-  // logic. Selection auto-clears on page navigation via autoClearOnChange.
   const {
     selectedIds,
     selectedCount,
@@ -105,15 +95,15 @@ export function ProductListClient({
     getSelectedItems,
     isSelected,
   } = useTableSelection({
-    items: products,
-    getId: (p) => p.id,
+    items: categories,
+    getId: (c) => c.id,
     autoClearOnChange: true,
   });
 
   function buildUrl(params: Record<string, string | undefined>) {
     const sp = new URLSearchParams(searchParams.toString());
     for (const [key, value] of Object.entries(params)) {
-      if (value === undefined || value === "" || value === "all") {
+      if (value === undefined || value === "") {
         sp.delete(key);
       } else {
         sp.set(key, value);
@@ -133,12 +123,12 @@ export function ProductListClient({
     }, 500);
   }
 
-  function handleCategoryChange(value: string) {
-    setCategoryId(value);
+  function handleArchiveChange(value: boolean) {
+    setOnlyArchived(value);
     startTransition(() => {
       router.push(
         buildUrl({
-          categoryId: value === "all" ? undefined : value,
+          archived: value ? "true" : undefined,
           page: undefined,
         }),
       );
@@ -151,7 +141,6 @@ export function ProductListClient({
     });
   }
 
-  // Block double-clicks — one navigation at a time.
   function handleNavigate(href: string) {
     if (isPending) return;
     setPendingNavHref(href);
@@ -164,12 +153,12 @@ export function ProductListClient({
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
-      await deleteProduct(deleteTarget.id);
-      toast.success(`تم حذف المنتج "${deleteTarget.name}"`);
+      await deleteCategory(deleteTarget.id);
+      toast.success(`تم أرشفة "${deleteTarget.name}"`);
       setDeleteTarget(null);
       router.refresh();
     } catch {
-      toast.error("حدث خطأ أثناء الحذف");
+      toast.error("حدث خطأ أثناء الأرشفة");
     } finally {
       setIsDeleting(false);
     }
@@ -180,19 +169,28 @@ export function ProductListClient({
     const count = ids.length;
     setIsDeleting(true);
     try {
-      await batchDeleteProducts(ids);
+      await batchDeleteCategories(ids);
       clearSelection();
       setBatchDeleteOpen(false);
-      toast.success(`تم حذف ${formatNumber(count)} منتج`);
+      toast.success(`تم أرشفة ${formatNumber(count)} تصنيف`);
       router.refresh();
     } catch {
-      toast.error("حدث خطأ أثناء الحذف");
+      toast.error("حدث خطأ أثناء الأرشفة");
     } finally {
       setIsDeleting(false);
     }
   }
 
-  // Build pagination range
+  async function handleRestore(id: number, name: string) {
+    try {
+      await restoreCategory(id);
+      toast.success(`تمت استعادة "${name}"`);
+      router.refresh();
+    } catch {
+      toast.error("حدث خطأ أثناء الاستعادة");
+    }
+  }
+
   function getPageNumbers(): (number | "ellipsis")[] {
     const pages: (number | "ellipsis")[] = [];
     const maxVisible = 5;
@@ -215,19 +213,19 @@ export function ProductListClient({
   return (
     <div className="space-y-6" dir="rtl">
       <PageHeader
-        title="المنتجات"
-        description="إدارة المنتجات والمتغيّرات والأسعار"
+        title="التصنيفات"
+        description="إدارة تصنيفات المنتجات"
         action={
           <Button
             disabled={isPending}
-            onClick={() => handleNavigate("/profile/admin/products/new")}
+            onClick={() => handleNavigate("/profile/admin/categories/new")}
           >
-            {isPending && pendingNavHref === "/profile/admin/products/new" ? (
+            {isPending && pendingNavHref === "/profile/admin/categories/new" ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Plus className="h-4 w-4" />
             )}
-            إضافة منتج
+            إضافة تصنيف
           </Button>
         }
       />
@@ -238,50 +236,38 @@ export function ProductListClient({
           <Input
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="ابحث باسم المنتج..."
+            placeholder="ابحث باسم التصنيف..."
             className="ps-9"
           />
         </div>
-        <Select value={categoryId} onValueChange={handleCategoryChange}>
-          <SelectTrigger className="w-full sm:w-56">
-            <SelectValue placeholder="كل التصنيفات" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">كل التصنيفات</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={String(c.id)}>
-                <span className="flex items-center gap-1">
-                  {c.categoryName}
-                  {c.archived && (
-                    <Badge variant="secondary" className="shrink-0">
-                      مؤرشفة
-                    </Badge>
-                  )}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Button
+          variant={onlyArchived ? "secondary" : "outline"}
+          disabled={isPending}
+          onClick={() => handleArchiveChange(!onlyArchived)}
+        >
+          <ArchiveRestore className="h-4 w-4" />
+          عرض المؤرشفة
+        </Button>
       </div>
 
-      {products.length === 0 ? (
+      {categories.length === 0 ? (
         <EmptyState
-          icon={Package}
-          title="لا توجد منتجات"
-          description="لم يتم العثور على منتجات مطابقة. جرّب تعديل البحث أو أضف منتجاً جديداً."
+          icon={Tags}
+          title={onlyArchived ? "لا توجد تصنيفات" : "لا توجد تصنيفات نشطة"}
+          description="لم يتم العثور على تصنيفات مطابقة. جرّب تعديل البحث أو أضف تصنيفاً جديداً."
           action={
             <Button
               variant="outline"
               size="sm"
               disabled={isPending}
-              onClick={() => handleNavigate("/profile/admin/products/new")}
+              onClick={() => handleNavigate("/profile/admin/categories/new")}
             >
-              {isPending && pendingNavHref === "/profile/admin/products/new" ? (
+              {isPending && pendingNavHref === "/profile/admin/categories/new" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Plus className="h-4 w-4" />
               )}
-              إضافة منتج
+              إضافة تصنيف
             </Button>
           }
         />
@@ -292,12 +278,11 @@ export function ProductListClient({
             isPending && "opacity-60",
           )}
         >
-          {/* Batch delete bar */}
           {selectedCount > 0 && (
             <div className="flex items-center justify-between border-b bg-muted/40 px-4 py-2">
               <span className="text-sm text-muted-foreground">
                 تم تحديد {formatNumber(selectedCount)}{" "}
-                {selectedCount === 1 ? "منتج" : "منتجات"}
+                {selectedCount === 1 ? "تصنيف" : "تصنيفات"}
               </span>
               <div className="flex items-center gap-2">
                 <Button
@@ -312,10 +297,10 @@ export function ProductListClient({
                   variant="destructive"
                   size="sm"
                   onClick={() => setBatchDeleteOpen(true)}
-                  disabled={isDeleting}
+                  disabled={isDeleting || onlyArchived}
                 >
                   <Trash2 className="h-4 w-4" />
-                  حذف المحدد
+                  أرشفة المحدد
                 </Button>
               </div>
             </div>
@@ -336,28 +321,30 @@ export function ProductListClient({
                   </div>
                 </TableHead>
                 <TableHead className="w-10 text-muted-foreground">#</TableHead>
-                <TableHead>المنتج</TableHead>
                 <TableHead>التصنيف</TableHead>
-                <TableHead>السعر الأساسي</TableHead>
-                <TableHead>المتغيّرات</TableHead>
-                <TableHead>المخزون</TableHead>
+                <TableHead>الرابط (Slug)</TableHead>
+                <TableHead>التصنيف الأب</TableHead>
+                <TableHead>المنتجات</TableHead>
+                <TableHead>الفرعية</TableHead>
                 <TableHead className="text-start">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map((product, index) => {
+              {categories.map((category, index) => {
                 const rowNumber =
                   (page - 1) * initialData.pageSize + index + 1;
                 return (
-                  <TableRow key={product.id}>
+                  <TableRow key={category.id}>
                     <TableCell>
                       <div className="flex items-center justify-center">
                         <input
                           type="checkbox"
-                          checked={isSelected(product.id)}
-                          onChange={() => toggleSelect(product.id)}
+                          checked={isSelected(category.id)}
+                          onChange={() =>
+                            toggleSelect(category.id)}
+                          disabled={onlyArchived}
                           className="h-4 w-4 rounded border-input"
-                          aria-label={`تحديد ${product.name}`}
+                          aria-label={`تحديد ${category.categoryName}`}
                         />
                       </div>
                     </TableCell>
@@ -365,89 +352,94 @@ export function ProductListClient({
                       {rowNumber}
                     </TableCell>
                     <TableCell className="font-medium">
-                      {product.name}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <span
-                          className={cn(
-                            "text-xs",
-                            product.categoryArchived && "text-muted-foreground font-normal line-through",
-                          )}
-                        >
-                          {product.categoryName ?? "—"}
-                        </span>
-                        {product.categoryArchived && (
+                      <div className="flex items-center gap-2">
+                        {category.categoryName}
+                        {onlyArchived && (
                           <Badge variant="secondary" className="shrink-0">
                             مؤرشفة
                           </Badge>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {formatCurrency(Number(product.basePrice))}
+                    <TableCell className="text-muted-foreground">
+                      {category.slug}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {category.parentCategoryName ?? "—"}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">
-                        {formatNumber(product.itemCount)}
+                        {formatNumber(category.productCount)}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {product.totalStock === 0 ? (
-                        <Badge variant="destructive">نفد المخزون</Badge>
-                      ) : (
-                        formatNumber(product.totalStock)
-                      )}
+                      <Badge variant="secondary">
+                        {formatNumber(category.childCount)}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <IconActionButton
-                          label="عرض"
-                          disabled={isPending}
-                          onClick={() =>
-                            handleNavigate(
-                              `/profile/admin/products/${product.id}?view=true`,
-                            )
-                          }
-                        >
-                          {isPending &&
-                          pendingNavHref ===
-                            `/profile/admin/products/${product.id}?view=true` ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </IconActionButton>
-                        <IconActionButton
-                          label="تعديل"
-                          disabled={isPending}
-                          onClick={() =>
-                            handleNavigate(
-                              `/profile/admin/products/${product.id}`,
-                            )
-                          }
-                        >
-                          {isPending &&
-                          pendingNavHref ===
-                            `/profile/admin/products/${product.id}` ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Pencil className="h-4 w-4" />
-                          )}
-                        </IconActionButton>
-                        <IconActionButton
-                          label="حذف"
-                          className="text-destructive hover:text-destructive"
-                          disabled={isPending || isDeleting}
-                          onClick={() =>
-                            setDeleteTarget({
-                              id: product.id,
-                              name: product.name,
-                            })
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </IconActionButton>
+                        {onlyArchived ? (
+                          <IconActionButton
+                            label="استعادة"
+                            disabled={isPending}
+                            onClick={() =>
+                              handleRestore(category.id, category.categoryName)
+                            }
+                          >
+                            <ArchiveRestore className="h-4 w-4" />
+                          </IconActionButton>
+                        ) : (
+                          <>
+                            <IconActionButton
+                              label="عرض"
+                              disabled={isPending}
+                              onClick={() =>
+                                handleNavigate(
+                                  `/profile/admin/categories/${category.id}?view=true`,
+                                )
+                              }
+                            >
+                              {isPending &&
+                              pendingNavHref ===
+                                `/profile/admin/categories/${category.id}?view=true` ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </IconActionButton>
+                            <IconActionButton
+                              label="تعديل"
+                              disabled={isPending}
+                              onClick={() =>
+                                handleNavigate(
+                                  `/profile/admin/categories/${category.id}`,
+                                )
+                              }
+                            >
+                              {isPending &&
+                              pendingNavHref ===
+                                `/profile/admin/categories/${category.id}` ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Pencil className="h-4 w-4" />
+                              )}
+                            </IconActionButton>
+                            <IconActionButton
+                              label="أرشفة"
+                              className="text-destructive hover:text-destructive"
+                              disabled={isPending || isDeleting}
+                              onClick={() =>
+                                setDeleteTarget({
+                                  id: category.id,
+                                  name: category.categoryName,
+                                })
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </IconActionButton>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -456,18 +448,13 @@ export function ProductListClient({
             </TableBody>
           </Table>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="border-t px-4 py-3">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
                     <PaginationPrevious
-                      href={
-                        page > 1
-                          ? buildUrl({ page: String(page - 1) })
-                          : "#"
-                      }
+                      href={page > 1 ? buildUrl({ page: String(page - 1) }) : "#"}
                       onClick={(e) => {
                         if (page <= 1) {
                           e.preventDefault();
@@ -476,19 +463,14 @@ export function ProductListClient({
                         e.preventDefault();
                         handlePageChange(page - 1);
                       }}
-                      className={
-                        page <= 1 ? "pointer-events-none opacity-50" : ""
-                      }
+                      className={page <= 1 ? "pointer-events-none opacity-50" : ""}
                     />
                   </PaginationItem>
-
-                  {getPageNumbers().map((p, i) =>
-                    p === "ellipsis" ? (
-                      <PaginationItem key={`ellipsis-${i}`}>
+                  {getPageNumbers().map((p, i) => (
+                    <PaginationItem key={`${p}-${i}`}>
+                      {p === "ellipsis" ? (
                         <PaginationEllipsis />
-                      </PaginationItem>
-                    ) : (
-                      <PaginationItem key={p}>
+                      ) : (
                         <PaginationLink
                           href={buildUrl({ page: String(p) })}
                           isActive={p === page}
@@ -499,10 +481,9 @@ export function ProductListClient({
                         >
                           {p}
                         </PaginationLink>
-                      </PaginationItem>
-                    ),
-                  )}
-
+                      )}
+                    </PaginationItem>
+                  ))}
                   <PaginationItem>
                     <PaginationNext
                       href={
@@ -537,9 +518,9 @@ export function ProductListClient({
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         description={
           <>
-            هل أنت متأكد من حذف هذا المنتج؟
+            هل أنت متأكد من أرشفة هذا التصنيف؟
             <span className="mt-2 block text-muted-foreground">
-              لا يمكن التراجع عن هذا الإجراء.
+              سيتم إخفاؤه عن العملاء و المنصّات، ويمكن استعادته لاحقاً.
             </span>
             <span className="mt-3 block rounded-md border border-destructive/30 bg-destructive/5 p-3">
               <span className="block font-bold text-destructive">
@@ -557,19 +538,19 @@ export function ProductListClient({
         onOpenChange={(open) => !open && setBatchDeleteOpen(false)}
         description={
           <>
-            هل أنت متأكد من حذف{" "}
+            هل أنت متأكد من أرشفة{" "}
             <span className="font-bold text-destructive">
               {formatNumber(selectedCount)}{" "}
-              {selectedCount === 1 ? "منتج" : "منتجات"}
+              {selectedCount === 1 ? "تصنيف" : "تصنيفات"}
             </span>
             ؟
             <span className="mt-2 block text-muted-foreground">
-              لا يمكن التراجع عن هذا الإجراء.
+              يمكن استعادتها لاحقاً.
             </span>
             <span className="mt-3 block max-h-40 overflow-y-auto rounded-md border border-destructive/30 bg-destructive/5 p-3">
               {getSelectedItems().map((s) => (
                 <span key={s.id} className="block font-bold text-destructive">
-                  {'"'}{s.name}{'"'}
+                  {'"'}{s.categoryName}{'"'}
                 </span>
               ))}
             </span>

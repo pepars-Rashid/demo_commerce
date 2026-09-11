@@ -8,6 +8,7 @@ import { Expand, ImagePlus, Images, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -246,7 +247,14 @@ export function ProductForm({
               <SelectContent>
                 {categories.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.categoryName}
+                    <span className="flex items-center gap-1">
+                      {c.categoryName}
+                      {c.archived && (
+                        <Badge variant="secondary" className="shrink-0">
+                          مؤرشفة
+                        </Badge>
+                      )}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>

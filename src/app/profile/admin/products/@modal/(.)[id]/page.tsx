@@ -20,7 +20,7 @@ export default async function InterceptedEditProductPage({
 
   const [product, categories] = await Promise.all([
     getProductById(productId),
-    getProductCategories(),
+    getProductCategories(true),
   ]);
 
   if (!product) {
@@ -33,6 +33,7 @@ export default async function InterceptedEditProductPage({
     categoryName: c.categoryName,
     slug: c.slug,
     categoryImage: c.categoryImage,
+    archived: c.archived,
   }));
 
   return (

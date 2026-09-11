@@ -1,24 +1,38 @@
-import { Tags } from "lucide-react";
+import { Suspense } from "react";
+import { getCategories } from "@/lib/actions/category";
+import { CategoryListClient } from "@/components/admin/categories/category-list-client";
 
-export default function CategoriesPage() {
+interface CategoriesPageProps {
+  searchParams: Promise<{
+    page?: string;
+    search?: string;
+    archived?: string;
+  }>;
+}
+
+export default async function CategoriesPage({
+  searchParams,
+}: CategoriesPageProps) {
+  const sp = await searchParams;
+
+  const page = parseInt(sp.page ?? "1", 10) || 1;
+  const search = sp.search ?? "";
+  const onlyArchived = sp.archived === "true";
+
+  const data = await getCategories({
+    page,
+    pageSize: 10,
+    search: search || undefined,
+    onlyArchived,
+  });
+
   return (
-    <div className="space-y-6" dir="rtl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">التصنيفات</h1>
-          <p className="text-sm text-muted-foreground">
-            إدارة تصنيفات المنتجات
-          </p>
-        </div>
-      </div>
-      <div className="flex h-60 items-center justify-center rounded-lg border">
-        <div className="text-center">
-          <Tags className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">
-            سيتم إضافة شجرة التصنيفات قريباً
-          </p>
-        </div>
-      </div>
-    </div>
+    <Suspense fallback={null}>
+      <CategoryListClient
+        initialData={data}
+        onlyArchivedValue={onlyArchived ? "true" : "false"}
+        searchValue={search}
+      />
+    </Suspense>
   );
 }

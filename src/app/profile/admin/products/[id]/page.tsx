@@ -27,7 +27,7 @@ export default async function EditProductPage({
 
   const [product, categories] = await Promise.all([
     getProductById(productId),
-    getProductCategories(),
+    getProductCategories(true),
   ]);
 
   if (!product) {
@@ -40,6 +40,7 @@ export default async function EditProductPage({
     categoryName: c.categoryName,
     slug: c.slug,
     categoryImage: c.categoryImage,
+    archived: c.archived,
   }));
 
   return (

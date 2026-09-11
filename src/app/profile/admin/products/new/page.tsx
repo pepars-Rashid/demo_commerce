@@ -6,7 +6,7 @@ import { ProductFormPage } from "@/components/admin/products/product-form-page";
 import { getProductCategories } from "@/lib/actions/product";
 
 export default async function NewProductPage() {
-  const categories = await getProductCategories();
+  const categories = await getProductCategories(true);
 
   const mappedCategories = categories.map((c) => ({
     id: String(c.id),
@@ -14,6 +14,7 @@ export default async function NewProductPage() {
     categoryName: c.categoryName,
     slug: c.slug,
     categoryImage: c.categoryImage,
+    archived: c.archived,
   }));
 
   return (

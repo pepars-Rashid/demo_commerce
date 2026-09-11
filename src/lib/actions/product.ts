@@ -9,6 +9,7 @@ import {
 import { eq, sql, ilike, count, and, asc, desc, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth/auth";
+import { isAdmin } from "@/lib/auth/permissions";
 import { productSchema } from "@/lib/zod/product";
 import type { ProductFormValues } from "@/lib/zod/product";
 
@@ -23,6 +24,7 @@ export interface ProductListRow {
   productImage: string | null;
   categoryId: number;
   categoryName: string | null;
+  categoryArchived: boolean;
   itemCount: number;
   createdAt: Date;
 }
@@ -66,8 +68,7 @@ async function assertAdmin() {
   if (!session?.user?.id) {
     throw new Error("غير مصرح");
   }
-  // role is cached in JWT token
-  if (session.user.role !== "superAdmin") {
+  if (!isAdmin(session.user.role)) {
     throw new Error("غير مصرح");
   }
   return session;
@@ -119,6 +120,7 @@ export async function getProducts(params: {
       productImage: productTable.productImage,
       categoryId: productTable.categoryId,
       categoryName: productCategoryTable.categoryName,
+      categoryArchived: sql<boolean>`${productCategoryTable.deletedAt} is not null`,
       createdAt: productTable.createdAt,
     })
     .from(productTable)
@@ -376,19 +378,25 @@ function rowVariantsToJson(
 }
 
 // ─── GET: All categories (for dropdowns) ────────────────────────────────────
+// `includeArchived` lets the product list filter (and the edit form) surface
+// categories under an archived (soft-deleted) category. Each row carries an
+// `archived` flag so the UI can tag it accordingly.
 
-export async function getProductCategories() {
-  const categories = await db
+export async function getProductCategories(includeArchived = false) {
+  const base = db
     .select({
       id: productCategoryTable.id,
       parentCategoryId: productCategoryTable.parentCategoryId,
       categoryName: productCategoryTable.categoryName,
       slug: productCategoryTable.slug,
       categoryImage: productCategoryTable.categoryImage,
+      archived: sql<boolean>`${productCategoryTable.deletedAt} is not null`,
     })
-    .from(productCategoryTable)
-    .where(isNull(productCategoryTable.deletedAt))
-    .orderBy(asc(productCategoryTable.categoryName));
+    .from(productCategoryTable);
 
-  return categories;
+  const query = includeArchived
+    ? base
+    : base.where(isNull(productCategoryTable.deletedAt));
+
+  return query.orderBy(asc(productCategoryTable.categoryName));
 }

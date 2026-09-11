@@ -7,7 +7,8 @@ This project uses **Next.js 16.2.6** with breaking changes. Before generating an
 
 ## Phase Status
 - **Products** (list, new, edit, view, modal interception) — ✅ **REAL DB** — follow the data-flow pattern below
-- **Orders, Categories, Inventory, Users** — ⏳ placeholder pages — use mock data arrays with **exact DB schema field names** until real server actions exist
+- **Categories** (list+search+pagination, new, edit, view, modal interception, archive/restore) — ✅ **REAL DB** — same pattern as products (self-parent Select + single image)
+- **Orders, Inventory, Users** — ⏳ placeholder pages — use mock data arrays with **exact DB schema field names** until real server actions exist
 
 ## Data Flow Pattern (follow for ALL new admin pages)
 ```
@@ -42,9 +43,11 @@ Client Component (src/components/admin/<domain>/*)
 /profile/admin/products/@modal/(.)[id] → Sheet modal intercept
 /profile/admin/orders/             → Order list (PLACEHOLDER)
 /profile/admin/orders/[id]/        → Order detail (PLACEHOLDER)
-/profile/admin/categories/         → Category list (PLACEHOLDER)
-/profile/admin/categories/new/     → Create category (PLACEHOLDER)
-/profile/admin/categories/[id]/    → Edit category (PLACEHOLDER)
+    /profile/admin/categories/             → Category list (REAL DB)
+    /profile/admin/categories/new/         → Create category
+    /profile/admin/categories/[id]/        → Edit category (?view=true = read-only)
+    /profile/admin/categories/@modal/(.)new     → Sheet modal intercept
+    /profile/admin/categories/@modal/(.)[id]    → Sheet modal intercept
 /profile/admin/inventory/          → Stock levels & logs (PLACEHOLDER)
 /profile/admin/users/              → User list (PLACEHOLDER)
 ```
@@ -74,7 +77,7 @@ Next.js 16.2.6 (App Router), React 19.2.4, TypeScript strict, Tailwind CSS v4, S
 @/lib/zod/<domain>    → Form validation schemas
 @/lib/utils           → cn() utility
 ```
-- **Server actions exist for products only** (`@/lib/actions/product.ts`). For orders/categories/inventory/users, no server actions yet — use mock data from `@/lib/mock/`
+- **Server actions exist for products + categories** (`@/lib/actions/product.ts`, `@/lib/actions/category.ts`). For orders/inventory/users, no server actions yet — use mock data from `@/lib/mock/`
 
 ## Available Shadcn Components
 button, card, input, label, field, separator, table, dialog, dropdown-menu, select, sonner (toast), badge, avatar, sheet, skeleton, breadcrumb, collapsible, pagination, popover, textarea, tooltip, sidebar, direction.

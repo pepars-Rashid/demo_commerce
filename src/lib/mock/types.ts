@@ -16,6 +16,7 @@ export interface ProductCategory {
   categoryName: string;
   slug: string;
   categoryImage: string | null;
+  archived?: boolean;
 }
 
 export interface Product {
