@@ -28,6 +28,10 @@ import type { CategoryFormValues } from "@/lib/zod/category";
 // Self-join alias for the parent relationship.
 const parent = alias(productCategoryTable, "parent");
 
+// Maximum depth of the category tree (Level 1 → Level 2 → Level 3).
+// Validation and client precheck rely on this fixed cap.
+const MAX_DEPTH = 3;
+
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 export interface CategoryListRow {
@@ -308,28 +312,33 @@ export async function createCategory(data: CategoryFormValues) {
 }
 
 // ─── Parent validator: merged cycle + max-depth guard ────────────────────────
-// Walks UP from the proposed parent, at most 2 hops (a 3-level tree).
-// Returns:
+// Walks UP from the proposed parent to find (a) whether moving under it creates
+// a cycle and (b) how deep the new subtree would reach. Returns:
 //   "cycle"     → id appears in the ancestor chain (illegal)
-//   "max_depth" → proposed parent sits at level 3, so a child would be level 4
+//   "max_depth" → the moved node's subtree would exceed MAX_DEPTH
 //   "ok"        → safe to parent under newParentId
 //
-// Cycle and max-depth are two faces of the same upward walk: the ancestor chain
-// is exactly where a cycle forms, and its length is exactly the depth that a
-// child would sit at. One bounded walk yields both verdicts. Still ≤2 small
-// indexed PK lookups, no recursion.
+// Two walks, both bounded for a fixed-depth tree:
+//   1. UP (≤ MAX_DEPTH-1 hops) from the proposed parent → its level + cycle check.
+//   2. DOWN (≤ MAX_DEPTH-1 hops) from the moved node → height of its own subtree.
+// The moved subtree inherits the parent's level, so the deepest node sits at
+// (new parent level + 1 + subtree height) and must stay ≤ MAX_DEPTH. A single
+// upstream walk alone is NOT enough — it would miss a moved node that carries
+// children/grandchildren. Still ≤ a handful of small indexed lookups, no
+// recursion, no transactions.
 
 async function validateParent(
-  id: number | null,        // null on create (no existing row to cycle into)
+  id: number | null,        // null on create (no existing subtree to inherit)
   newParentId: number,
 ): Promise<"ok" | "cycle" | "max_depth"> {
   if (id !== null && id === newParentId) return "cycle";
 
+  // Upward walk: detect cycle + measure the proposed parent's level.
   let currentId: number | null = newParentId;
-  let level = 1; // the proposed parent itself is level 1 of the walk
+  let parentLevel = 1; // the proposed parent itself is level 1 of the walk
   const visited = new Set<number>();
 
-  for (let hop = 0; hop < 2 && currentId != null; hop++) {
+  for (let hop = 0; hop < MAX_DEPTH - 1 && currentId != null; hop++) {
     if (id !== null && currentId === id) return "cycle";
     if (visited.has(currentId)) break; // pre-existing cycle, bail
     visited.add(currentId);
@@ -341,13 +350,41 @@ async function validateParent(
       .limit(1);
 
     currentId = row?.parentId ?? null;
-    if (currentId != null) level++;
+    if (currentId != null) parentLevel++;
   }
 
-  // A child under a level-3 parent would be level 4 → reject.
-  if (level >= 3) return "max_depth";
+  // Subtree height under the moved node (0 when creating a fresh root child).
+  const heightBelow = id === null ? 0 : await subtreeHeightBelow(id);
+
+  // Deepest node after the move sits at parentLevel + 1 (this node) + heightBelow.
+  if (parentLevel + 1 + heightBelow > MAX_DEPTH) return "max_depth";
 
   return "ok";
+}
+
+// Number of levels of descendants directly under `id` (0 for a leaf).
+// Bounded: a valid tree is ≤ MAX_DEPTH deep, so this visits at most MAX_DEPTH-1
+// child levels — one small indexed query each, no recursion.
+async function subtreeHeightBelow(id: number): Promise<number> {
+  let height = 0;
+  let frontier = [id];
+
+  for (let depth = 0; depth < MAX_DEPTH - 1 && frontier.length > 0; depth++) {
+    const children = await db
+      .select({ id: productCategoryTable.id })
+      .from(productCategoryTable)
+      .where(
+        and(
+          inArray(productCategoryTable.parentCategoryId, frontier),
+          isNull(productCategoryTable.deletedAt),
+        ),
+      );
+
+    frontier = children.map((c) => c.id);
+    if (frontier.length > 0) height++;
+  }
+
+  return height;
 }
 
 // ─── UPDATE ─────────────────────────────────────────────────────────────────

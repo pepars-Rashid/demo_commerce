@@ -23,13 +23,15 @@ export default async function InterceptedEditCategoryPage({
     return null;
   }
 
-  const category = await getCategoryById(categoryId);
+  const [category, excluded, all] = await Promise.all([
+    getCategoryById(categoryId),
+    getCategoryWithDescendants(categoryId),
+    getActiveCategories(),
+  ]);
   if (!category) {
     return null;
   }
 
-  const excluded = await getCategoryWithDescendants(categoryId);
-  const all = await getActiveCategories();
   const options = withCategoryDepth(
     all.filter((c) => !excluded.has(c.id)),
   );

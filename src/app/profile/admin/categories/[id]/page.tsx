@@ -30,15 +30,17 @@ export default async function EditCategoryPage({
     notFound();
   }
 
-  const category = await getCategoryById(categoryId);
+  const [category, excluded, all] = await Promise.all([
+    getCategoryById(categoryId),
+    getCategoryWithDescendants(categoryId),
+    getActiveCategories(),
+  ]);
   if (!category) {
     notFound();
   }
 
   // Exclude self + descendants from the parent options (prevent cycles), then
   // compute the depth of each remaining option for the client-side max-depth check.
-  const excluded = await getCategoryWithDescendants(categoryId);
-  const all = await getActiveCategories();
   const options = withCategoryDepth(
     all.filter((c) => !excluded.has(c.id)),
   );

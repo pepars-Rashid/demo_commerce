@@ -27,12 +27,7 @@ import { createCategory, updateCategory } from "@/lib/actions/category";
 import type { CategoryFormValues } from "@/lib/zod/category";
 import { categorySchema } from "@/lib/zod/category";
 import type { Resolver } from "react-hook-form";
-
-interface CategoryOption {
-  id: number;
-  categoryName: string;
-  depth: number;
-}
+import type { CategoryOption } from "@/lib/category-depth";
 
 export interface CategoryFormProps {
   options: CategoryOption[];
