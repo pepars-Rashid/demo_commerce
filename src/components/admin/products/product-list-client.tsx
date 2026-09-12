@@ -15,13 +15,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -42,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/admin/page-header";
 import { EmptyState } from "@/components/admin/empty-state";
 import { IconActionButton } from "@/components/admin/icon-action-button";
+import { CategoryTreeSelect } from "@/components/admin/categories/category-tree-select";
 import { DeleteDialog } from "@/components/admin/delete-dialog";
 import { deleteProduct, batchDeleteProducts } from "@/lib/actions/product";
 import { formatCurrency, formatNumber } from "@/lib/admin-format";
@@ -51,7 +45,7 @@ import type { ProductListResult } from "@/lib/actions/product";
 
 interface ProductListClientProps {
   initialData: ProductListResult;
-  categories: { id: number; categoryName: string; archived: boolean }[];
+  categories: { id: number; parentCategoryId: number | null; categoryName: string; archived: boolean }[];
   searchValue: string;
   categoryIdValue: string;
 }
@@ -109,6 +103,34 @@ export function ProductListClient({
     getId: (p) => p.id,
     autoClearOnChange: true,
   });
+
+  // Build CategoryOption[] with depth for the tree-select.
+  const categoryOptions = (() => {
+    const parentOf = new Map<number, number>();
+    for (const c of categories) {
+      if (c.parentCategoryId != null) parentOf.set(c.id, c.parentCategoryId);
+    }
+    return categories.map((c) => {
+      let depth = 1;
+      let current = c.id;
+      const seen = new Set<number>();
+      for (let hop = 0; hop < 2; hop++) {
+        if (!parentOf.has(current) || seen.has(current)) break;
+        seen.add(current);
+        current = parentOf.get(current)!;
+        depth++;
+      }
+      return {
+        id: c.id,
+        categoryName: c.categoryName,
+        parentCategoryId: c.parentCategoryId,
+        depth,
+        archived: c.archived,
+      };
+    });
+  })();
+
+
 
   function buildUrl(params: Record<string, string | undefined>) {
     const sp = new URLSearchParams(searchParams.toString());
@@ -242,26 +264,17 @@ export function ProductListClient({
             className="ps-9"
           />
         </div>
-        <Select value={categoryId} onValueChange={handleCategoryChange}>
-          <SelectTrigger className="w-full sm:w-56">
-            <SelectValue placeholder="كل التصنيفات" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">كل التصنيفات</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={String(c.id)}>
-                <span className="flex items-center gap-1">
-                  {c.categoryName}
-                  {c.archived && (
-                    <Badge variant="secondary" className="shrink-0">
-                      مؤرشفة
-                    </Badge>
-                  )}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <CategoryTreeSelect
+          options={categoryOptions}
+          value={categoryId === "all" ? "" : categoryId}
+          onValueChange={(value) =>
+            handleCategoryChange(value === "" ? "all" : value)
+          }
+          placeholder="كل التصنيفات"
+          maxDepth={999}
+          showArchived
+          className="sm:w-48 shrink-0"
+        />
       </div>
 
       {products.length === 0 ? (

@@ -12,19 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Field,
   FieldContent,
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
 import { IconActionButton } from "@/components/admin/icon-action-button";
+import { CategoryTreeSelect } from "@/components/admin/categories/category-tree-select";
 import { ImageManagerDialog } from "@/components/upload/image-manager-dialog";
 import { ImageLightbox } from "@/components/upload/image-lightbox";
 import type { Product, ProductCategory, ProductItem } from "@/lib/mock/types";
@@ -129,6 +123,33 @@ export function ProductForm({
   const heroImage = useWatch({ control, name: "productImage" });
   const categoryValue = useWatch({ control, name: "categoryId" });
 
+  // Build CategoryOption[] from ProductCategory[] for the tree-select.
+  // Compute depth by walking up parent chain (max 2 hops for 3-level tree).
+  const categoryOptions = (() => {
+    const parentOf = new Map<string, string>();
+    for (const c of categories) {
+      if (c.parentCategoryId != null) parentOf.set(c.id, c.parentCategoryId);
+    }
+    return categories.map((c) => {
+      let depth = 1;
+      let current = c.id;
+      const seen = new Set<string>();
+      for (let hop = 0; hop < 2; hop++) {
+        if (!parentOf.has(current) || seen.has(current)) break;
+        seen.add(current);
+        current = parentOf.get(current)!;
+        depth++;
+      }
+      return {
+        id: parseInt(c.id, 10),
+        categoryName: c.categoryName,
+        parentCategoryId: c.parentCategoryId ? parseInt(c.parentCategoryId, 10) : null,
+        depth,
+        archived: c.archived,
+      };
+    });
+  })();
+
   const {
     fields: itemFields,
     append: appendItem,
@@ -229,9 +250,10 @@ export function ProductForm({
 
         {/* Category */}
         <Field>
-          <FieldLabel htmlFor="categoryId">التصنيف</FieldLabel>
+          <FieldLabel>التصنيف</FieldLabel>
           <FieldContent>
-            <Select
+            <CategoryTreeSelect
+              options={categoryOptions}
               value={categoryValue}
               onValueChange={(value) =>
                 form.setValue("categoryId", value, {
@@ -240,25 +262,11 @@ export function ProductForm({
                 })
               }
               disabled={readOnly || isSubmitting}
-            >
-              <SelectTrigger id="categoryId" className="w-full">
-                <SelectValue placeholder="اختر التصنيف" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    <span className="flex items-center gap-1">
-                      {c.categoryName}
-                      {c.archived && (
-                        <Badge variant="secondary" className="shrink-0">
-                          مؤرشفة
-                        </Badge>
-                      )}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="اختر التصنيف"
+              maxDepth={999}
+              showArchived
+              showNoneOption={false}
+            />
             <FieldError
               errors={errors.categoryId ? [errors.categoryId] : undefined}
             />

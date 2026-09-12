@@ -9,18 +9,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Field,
   FieldContent,
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
+import { CategoryTreeSelect } from "./category-tree-select";
 import { ImageManagerDialog } from "@/components/upload/image-manager-dialog";
 import { ImageLightbox } from "@/components/upload/image-lightbox";
 import { createCategory, updateCategory } from "@/lib/actions/category";
@@ -198,30 +192,21 @@ export function CategoryForm({
 
         {/* Parent */}
         <Field>
-          <FieldLabel htmlFor="parentCategoryId">التصنيف الأب</FieldLabel>
+          <FieldLabel>التصنيف الأب</FieldLabel>
           <FieldContent>
-            <Select
+            <CategoryTreeSelect
+              options={options}
               value={parentValue}
               onValueChange={(value) =>
-                setValue("parentCategoryId", value === "none" ? "" : value, {
+                setValue("parentCategoryId", value, {
                   shouldValidate: true,
                   shouldDirty: true,
                 })
               }
               disabled={readOnly || isSubmitting}
-            >
-              <SelectTrigger id="parentCategoryId" className="w-full">
-                <SelectValue placeholder="بدون تصنيف أب" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">بدون تصنيف أب</SelectItem>
-                {options.map((o) => (
-                  <SelectItem key={o.id} value={String(o.id)}>
-                    {o.categoryName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              currentParentId={category?.parentCategoryId ?? undefined}
+              maxDepth={3}
+            />
             <FieldError
               errors={
                 errors.parentCategoryId

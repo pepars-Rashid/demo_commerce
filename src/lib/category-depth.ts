@@ -13,7 +13,9 @@ export interface CategoryDepthRow {
 export interface CategoryOption {
   id: number;
   categoryName: string;
+  parentCategoryId: number | null;
   depth: number;
+  archived?: boolean;
 }
 
 // Max tree depth is 3, so a per-node upward walk needs at most 2 hops.
@@ -38,6 +40,6 @@ export function withCategoryDepth(
       depth++;
     }
 
-    return { id: r.id, categoryName: r.categoryName, depth };
+    return { id: r.id, categoryName: r.categoryName, parentCategoryId: r.parentCategoryId, depth };
   });
 }
