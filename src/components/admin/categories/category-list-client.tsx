@@ -520,7 +520,11 @@ export function CategoryListClient({
           <>
             هل أنت متأكد من أرشفة هذا التصنيف؟
             <span className="mt-2 block text-muted-foreground">
-              سيتم إخفاؤه عن العملاء و المنصّات، ويمكن استعادته لاحقاً.
+              سيؤدي ذلك إلى أرشفة هذا التصنيف{" "}
+              <span className="font-bold text-destructive">
+                مع جميع تصنيفاته الفرعية
+              </span>
+              . ويمكن استعادتها جميعاً لاحقاً.
             </span>
             <span className="mt-3 block rounded-md border border-destructive/30 bg-destructive/5 p-3">
               <span className="block font-bold text-destructive">
@@ -545,7 +549,9 @@ export function CategoryListClient({
             </span>
             ؟
             <span className="mt-2 block text-muted-foreground">
-              يمكن استعادتها لاحقاً.
+              سيؤدي ذلك إلى أرشفة هذه{" "}
+              <span className="font-bold text-destructive">التصنيفات</span>{" "}
+              مع جميع تصنيفاتها الفرعية. ويمكن استعادتها جميعاً لاحقاً.
             </span>
             <span className="mt-3 block max-h-40 overflow-y-auto rounded-md border border-destructive/30 bg-destructive/5 p-3">
               {getSelectedItems().map((s) => (

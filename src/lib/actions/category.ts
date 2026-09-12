@@ -255,10 +255,7 @@ export async function getCategoryWithDescendants(id: number): Promise<Set<number
       .select({ id: productCategoryTable.id })
       .from(productCategoryTable)
       .where(
-        and(
-          inArray(productCategoryTable.parentCategoryId, frontier),
-          isNull(productCategoryTable.deletedAt),
-        ),
+        inArray(productCategoryTable.parentCategoryId, frontier),
       );
 
     frontier = children.map((c) => c.id);
@@ -374,10 +371,7 @@ async function subtreeHeightBelow(id: number): Promise<number> {
       .select({ id: productCategoryTable.id })
       .from(productCategoryTable)
       .where(
-        and(
-          inArray(productCategoryTable.parentCategoryId, frontier),
-          isNull(productCategoryTable.deletedAt),
-        ),
+        inArray(productCategoryTable.parentCategoryId, frontier),
       );
 
     frontier = children.map((c) => c.id);
@@ -440,10 +434,12 @@ export async function updateCategory(id: number, data: CategoryFormValues) {
 export async function deleteCategory(id: number) {
   await assertCanManageCatalog();
 
+  // Archive the whole subtree (this category + all descendants).
+  const subtree = await getCategoryWithDescendants(id);
   await db
     .update(productCategoryTable)
     .set({ deletedAt: sql`now()` })
-    .where(eq(productCategoryTable.id, id));
+    .where(inArray(productCategoryTable.id, Array.from(subtree)));
 
   revalidatePath("/profile/admin/categories");
 }
@@ -453,10 +449,12 @@ export async function deleteCategory(id: number) {
 export async function restoreCategory(id: number) {
   await assertCanManageCatalog();
 
+  // Restore the whole subtree (this category + all descendants).
+  const subtree = await getCategoryWithDescendants(id);
   await db
     .update(productCategoryTable)
     .set({ deletedAt: null })
-    .where(eq(productCategoryTable.id, id));
+    .where(inArray(productCategoryTable.id, Array.from(subtree)));
 
   revalidatePath("/profile/admin/categories");
   revalidatePath("/profile/admin/products");
@@ -469,10 +467,16 @@ export async function batchDeleteCategories(ids: number[]) {
 
   if (ids.length === 0) return;
 
+  // Union every selected subtree, then archive them all in one update.
+  const all = new Set<number>();
+  for (const id of ids) {
+    for (const d of await getCategoryWithDescendants(id)) all.add(d);
+  }
+
   await db
     .update(productCategoryTable)
     .set({ deletedAt: sql`now()` })
-    .where(inArray(productCategoryTable.id, ids));
+    .where(inArray(productCategoryTable.id, Array.from(all)));
 
   revalidatePath("/profile/admin/categories");
 }
