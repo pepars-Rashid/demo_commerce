@@ -92,6 +92,13 @@ Suggest installing any others: `npx shadcn@latest add [component]`
 - TypeScript interfaces for props (no `any`)
 - Loading, empty, and error states on every page
 - Sonner for toasts, dialog for delete confirmations
+
+## Category-specific
+- **Tree-select**: `CategoryTreeSelect` component (`src/components/admin/categories/category-tree-select.tsx`) renders collapsible hierarchy inside shadcn `<Select>`. Uses `Collapsible` for expand/collapse, `<SelectItem>` for selection. Color-coded by depth (level 2: `bg-muted/60`, level 3: `bg-muted`).
+- **Depth system**: Max 3 levels. `withCategoryDepth()` in `src/lib/category-depth.ts` computes depth from `parentCategoryId` chain. Create: depth < 3 selectable. Edit: current parent always visible even at depth 3.
+- **Archive/restore**: Soft delete via `deletedAt`. `deleteCategory`/`restoreCategory` archive/restore the whole subtree (category + all descendants). `getCategoryWithDescendants` for subtree queries.
+- **Self-parent**: `parentCategoryId` FK to same table. Edit page excludes self + descendants from parent options (prevent cycles).
+- **Props**: `options: CategoryOption[]` (flat, with `{ id, categoryName, parentCategoryId, depth, archived? }`), `value: string`, `onValueChange`, `currentParentId?`, `maxDepth?`, `showArchived?`, `showNoneOption?`.
 - Server Component → server action → `initialData` → Client Component pattern (products)
 - Mock data must use **exact DB schema field names** (see DATABASE.md + schema table below)
 

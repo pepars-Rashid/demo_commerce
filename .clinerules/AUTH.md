@@ -22,18 +22,32 @@
 | Guard | Location | Behavior | When to use |
 |---|---|---|---|
 | `requireAdmin()` | `src/lib/auth/require-admin.ts` | `auth()` + DB query on `users.role` + `redirect()` | Admin **layout** guard — one call per page request |
-| `assertAdmin()` | inline in each server action (`src/lib/actions/product.ts`) | `auth()` + checks `session.user.role` from JWT only (no DB query) | Inside **server actions** before mutations |
+| `assertCanManageCatalog()` | inline in product/category server actions | `auth()` + `isAdmin(role)` check (JWT-only, no DB query) | Before catalog mutations (products/categories) |
+| `assertAdmin()` | inline in order/inventory/user server actions | `auth()` + `isSuperAdmin(role)` check (JWT-only, no DB query) | Before restricted mutations |
 
-- `requireAdmin` returns the session; layout renders `null` if redirected
-- `assertAdmin` throws `new Error("غير مصرح")` on failure
-- **Rule**: UI pages must NOT call either — layout handles it
+- `requireAdmin` returns the session; layout renders `null` if redirected (any admin role)
+- `assertCanManageCatalog` throws on failure — used for products & categories (both roles)
+- `assertAdmin` throws on failure — used for orders, inventory, users (superAdmin only)
+- **Rule**: UI pages must NOT call any guard — layout handles it
+
+## Role permissions matrix
+| Feature | superAdmin | operationManager |
+|---|---|---|
+| Products & Categories | full CRUD | full CRUD |
+| Orders | full CRUD | view only |
+| Inventory & Logs | full CRUD | view only |
+| Users | full CRUD | no access |
 
 ## Role system
-- `users.role` column: `"user"` (default) | `"superAdmin"`
+- `users.role` column: `"user"` (default) | `"operationManager"` | `"superAdmin"`
+- Role ladder (ascending privilege): `user` → `operationManager` → `superAdmin`
 - Set via DB directly (seed script or direct update), no admin panel yet
 - Access from session: `session.user.role` — available in both server & client components
+- `isAdmin(role)` = `superAdmin` OR `operationManager` (admin shell entry)
+- `isSuperAdmin(role)` = `superAdmin` only (restricted mutations)
 - Check example: `src/app/profile/page.tsx` (`user.role === "superAdmin"`)
 - Type augmentation in `src/lib/auth/auth-types.d.ts`
+- Permissions defined in: `src/lib/auth/permissions.ts`
 
 ## Password hashing
 `src/lib/auth/password.ts` — bcryptjs, 8 salt rounds:
@@ -77,6 +91,7 @@ import { auth, signIn, signOut } from "@/lib/auth/auth"      // server
 import { signIn, signOut } from "next-auth/react"              // client
 import { signupAction } from "@/lib/actions/auth"              // signup Server Action
 import { requireAdmin } from "@/lib/auth/require-admin"        // admin layout guard
+import { isAdmin, isSuperAdmin } from "@/lib/auth/permissions" // role checks
 import { loginSchema } from "@/lib/zod/login"                  // login validation
 import { signupSchema } from "@/lib/zod/signup"                // signup validation
 ```
@@ -87,6 +102,7 @@ src/lib/auth/
 ├── auth.ts            # NextAuth config
 ├── auth-types.d.ts    # Type augmentation (User.role)
 ├── password.ts        # bcryptjs hash/verify
+├── permissions.ts     # Role checks (isAdmin, isSuperAdmin)
 └── require-admin.ts   # Server-side admin guard (DB role check + redirect)
 src/lib/actions/
 └── auth.ts            # signup Server Action
