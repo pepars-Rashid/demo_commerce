@@ -69,7 +69,14 @@ export const orderLine = pgTable(
 );
 
 // ── Inventory Log ─────────────────────────────────────────────────────────
-// Ultra-simple audit trail for stock changes.
+// Append-only audit trail for every stock change. Each row records WHO made the
+// change (`userId`), WHERE it came from (`orderLineId`, null = admin/system
+// action outside a customer order), WHAT changed (`change`), and WHY (`reason`).
+//
+// Indexed on product, line, user, and date so the ledger can be filtered for
+// reporting (M4) without full scans. `userId`/`orderLineId` are set-null on
+// delete so the audit history is never lost — in normal operation both are
+// always populated by the application.
 export const inventoryLog = pgTable(
   "inventory_log",
   {
@@ -77,12 +84,24 @@ export const inventoryLog = pgTable(
     productItemId: integer("product_item_id")
       .notNull()
       .references(() => productItem.id, { onDelete: "cascade" }),
+    // Origin order line (per-SKU inside shop_order). Null ⇒ admin/system action,
+    // e.g. an admin stock adjustment that is not tied to a customer order.
+    orderLineId: integer("order_line_id").references(() => orderLine.id, {
+      onDelete: "set null",
+    }),
+    // Who performed this change (customer OR admin). Null only if the user's row
+    // was hard-deleted.
+    userId: varchar("user_id", { length: 36 }).references(() => users.id, {
+      onDelete: "set null",
+    }),
     change: integer("change").notNull(), // positive = stock in, negative = stock out
     reason: varchar("reason", { length: 255 }).notNull(), // e.g. "order_placed", "admin_adjustment", "return"
     ...createdAtOnly,
   },
   (table) => [
     index("inventory_log_product_item_idx").on(table.productItemId),
+    index("inventory_log_order_line_idx").on(table.orderLineId),
+    index("inventory_log_user_id_idx").on(table.userId),
     index("inventory_log_created_at_idx").on(table.createdAt),
   ]
 );
