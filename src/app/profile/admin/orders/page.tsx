@@ -1,24 +1,32 @@
-import { ShoppingCart } from "lucide-react";
+import { Suspense } from "react";
+import { getOrders } from "@/lib/actions/order";
+import { OrderListClient } from "@/components/admin/orders/order-list-client";
 
-export default function OrdersPage() {
+interface OrdersPageProps {
+  searchParams: Promise<{ page?: string; search?: string; status?: string }>;
+}
+
+export default async function OrdersPage({ searchParams }: OrdersPageProps) {
+  const sp = await searchParams;
+
+  const page = parseInt(sp.page ?? "1", 10) || 1;
+  const search = sp.search ?? "";
+  const status = sp.status ?? "";
+
+  const data = await getOrders({
+    page,
+    pageSize: 10,
+    search: search || undefined,
+    status: status || undefined,
+  });
+
   return (
-    <div className="space-y-6" dir="rtl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">الطلبات</h1>
-          <p className="text-sm text-muted-foreground">
-            عرض وإدارة طلبات المتجر
-          </p>
-        </div>
-      </div>
-      <div className="flex h-60 items-center justify-center rounded-lg border">
-        <div className="text-center">
-          <ShoppingCart className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-2 text-sm text-muted-foreground">
-            سيتم إضافة جدول الطلبات قريباً
-          </p>
-        </div>
-      </div>
-    </div>
+    <Suspense fallback={null}>
+      <OrderListClient
+        initialData={data}
+        searchValue={search}
+        statusValue={status}
+      />
+    </Suspense>
   );
 }

@@ -1,6 +1,7 @@
 import type { Session } from "next-auth";
 import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
+import { isAdmin } from "@/lib/auth/permissions";
 
 export async function AdminSidebar({
   authPromise,
@@ -14,8 +15,10 @@ export async function AdminSidebar({
     return null;
   }
 
-  // JWT role check (fast, no DB) — blocks non-admins from even seeing the admin shell
-  if (session.user.role !== "superAdmin") {
+  // JWT role check (fast, no DB) — lets BOTH admin roles into the admin shell.
+  // Customers are blocked here; permission to MUTATE is enforced server-side
+  // per-feature (assertAdmin / requireSuperAdmin).
+  if (!isAdmin(session.user.role)) {
     redirect("/profile");
     return null;
   }

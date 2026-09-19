@@ -1,37 +1,36 @@
 import { notFound } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
-import Link from "next/link";
+import { getOrderById } from "@/lib/actions/order";
+import { requireAdmin } from "@/lib/auth/require-admin";
+import { requireSuperAdmin } from "@/lib/auth/require-super-admin";
+import { OrderDetailView } from "@/components/admin/orders/order-detail-view";
+import { OrderDetailManage } from "@/components/admin/orders/order-detail-manage";
 
 interface OrderDetailPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string }>;
 }
 
-export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
+export default async function OrderDetailPage({
+  params,
+  searchParams,
+}: OrderDetailPageProps) {
   const { id } = await params;
-  const orderId = Number(id);
+  const { view } = await searchParams;
+  const orderId = parseInt(id, 10);
   if (Number.isNaN(orderId)) notFound();
 
-  return (
-    <div className="space-y-6" dir="rtl">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/profile/admin/orders">
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">تفاصيل الطلب</h1>
-          <p className="text-sm text-muted-foreground">
-            الطلب رقم #{orderId}
-          </p>
-        </div>
-      </div>
-      <div className="flex h-60 items-center justify-center rounded-lg border">
-        <p className="text-sm text-muted-foreground">
-          تفاصيل الطلب قريباً
-        </p>
-      </div>
-    </div>
-  );
+  const order = await getOrderById(orderId);
+  if (!order) notFound();
+
+  // Server-side role split: superAdmin gets the manage surface (respecting
+  // ?view=true); operationManager always gets a separate read-only view.
+  if (order.canManage) {
+    const admin = await requireSuperAdmin();
+    if (!admin) return null;
+    return <OrderDetailManage order={order} viewOnly={view === "true"} />;
+  }
+
+  const viewer = await requireAdmin();
+  if (!viewer) return null;
+  return <OrderDetailView order={order} />;
 }
