@@ -31,7 +31,7 @@ const navItems = [
   { href: "/profile/admin/products", label: "المنتجات", icon: Package },
   { href: "/profile/admin/orders", label: "الطلبات", icon: ShoppingCart },
   { href: "/profile/admin/categories", label: "التصنيفات", icon: Tags },
-  { href: "/profile/admin/inventory", label: "المخزون", icon: Warehouse },
+  { href: "/profile/admin/inventory", label: "سجل المخزون", icon: Warehouse },
   { href: "/profile/admin/users", label: "المستخدمين", icon: Users },
 ];
 
