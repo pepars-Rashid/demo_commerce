@@ -36,6 +36,11 @@ interface InventoryLedgerClientProps {
   sourceValue: string;
 }
 
+// Shared phrasing for the rendered line and the copy text (kept identical).
+function actorLabel(log: InventoryLogRow): string {
+  return log.userId ? `#${log.userId}` : "#النظام";
+}
+
 export function InventoryLedgerClient({
   initialData,
   searchValue,
@@ -46,6 +51,9 @@ export function InventoryLedgerClient({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  // Live copy of searchParams so async callbacks (the debounced search push)
+  // compose on the newest URL instead of a stale render-time value.
+  const searchParamsRef = useRef(searchParams);
   const [isPending, startTransition] = useTransition();
 
   const [search, setSearch] = useState(searchValue);
@@ -53,26 +61,43 @@ export function InventoryLedgerClient({
   const [to, setTo] = useState(toValue);
   const [source, setSource] = useState<string>(sourceValue || "all");
 
+  // Editing guard: a date field that still has focus is treated as "actively
+  // being edited" and is not overwritten by the URL-sync effects below.
+  const editingRef = useRef({ from: false, to: false });
+  // Tracks the provider value we last synced into the local select, so the
+  // source re-sync below only fires on a genuine URL change (and never on mount).
+  const lastSourceValueRef = useRef(sourceValue);
+
   // logs reflect `initialData` (fresh on each server re-render). Load-more rows
   // are keyed by URL so they reset on filter change without remounting, keeping
-  // the debounced search input focused.
+  // the debounced search input focused. A cheap signature of the current first
+  // page also discards appended rows when the data revalidates under the same URL.
+  const initialDataSig = `${initialData.totalCount}:${initialData.logs[0]?.id ?? "none"}`;
   const urlKey = `${pathname}?${searchParams.toString()}`;
   const [loadMore, setLoadMore] = useState<{
     urlKey: string;
+    sig: string;
     rows: InventoryLogRow[];
     page: number;
     hasMore: boolean;
     totalCount: number;
   }>({
     urlKey,
+    sig: initialDataSig,
     rows: [],
     page: initialData.page,
     hasMore: initialData.hasMore,
     totalCount: initialData.totalCount,
   });
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // Loading is scoped to the URL the request belongs to, so switching filters
+  // doesn't leave a stale spinner/disabled button on the new page.
+  const [loadingMoreUrlKey, setLoadingMoreUrlKey] = useState<string | null>(null);
+  const isLoadingMore = loadingMoreUrlKey === urlKey;
 
-  const activeLoadMore = loadMore.urlKey === urlKey ? loadMore : null;
+  const activeLoadMore =
+    loadMore.urlKey === urlKey && loadMore.sig === initialDataSig
+      ? loadMore
+      : null;
   const page = activeLoadMore?.page ?? initialData.page;
   const hasMore = activeLoadMore?.hasMore ?? initialData.hasMore;
   const totalCount = activeLoadMore?.totalCount ?? initialData.totalCount;
@@ -95,8 +120,42 @@ export function InventoryLedgerClient({
     };
   }, []);
 
+  // Keep the live URL available to async buildUrl callbacks (the debounced
+  // search push). Synced in an effect (not during render) to satisfy
+  // react-hooks/refs.
+  useEffect(() => {
+    searchParamsRef.current = searchParams;
+  });
+
+  // The URL is the source of truth; local state only mirrors it so inputs stay
+  // smooth while typing/picking. These effects re-sync the inputs from the
+  // URL-derived props on any external change (browser back/forward, reset,
+  // shared links) — while never clobbering a field that is mid-edit.
+  useEffect(() => {
+    if (!searchTimerRef.current) setSearch(searchValue);
+  }, [searchValue]);
+  useEffect(() => {
+    if (!editingRef.current.from) setFrom(fromValue);
+  }, [fromValue]);
+  useEffect(() => {
+    if (!editingRef.current.to) setTo(toValue);
+  }, [toValue]);
+  useEffect(() => {
+    if (lastSourceValueRef.current !== sourceValue) {
+      lastSourceValueRef.current = sourceValue;
+      setSource(sourceValue);
+    }
+  }, [sourceValue]);
+
+  function clearSearchDebounce() {
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = null;
+    }
+  }
+
   function buildUrl(params: Record<string, string | undefined>) {
-    const sp = new URLSearchParams(searchParams.toString());
+    const sp = new URLSearchParams(searchParamsRef.current.toString());
     for (const [key, value] of Object.entries(params)) {
       if (value === undefined || value === "" || value === "all") {
         sp.delete(key);
@@ -112,6 +171,7 @@ export function InventoryLedgerClient({
     setSearch(value);
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     searchTimerRef.current = setTimeout(() => {
+      searchTimerRef.current = null;
       startTransition(() => {
         router.push(buildUrl({ search: value || undefined, page: undefined }));
       });
@@ -119,6 +179,7 @@ export function InventoryLedgerClient({
   }
 
   function handleFromChange(value: string) {
+    clearSearchDebounce();
     setFrom(value);
     startTransition(() => {
       router.push(buildUrl({ from: value || undefined, to, page: undefined }));
@@ -126,6 +187,7 @@ export function InventoryLedgerClient({
   }
 
   function handleToChange(value: string) {
+    clearSearchDebounce();
     setTo(value);
     startTransition(() => {
       router.push(buildUrl({ from, to: value || undefined, page: undefined }));
@@ -133,6 +195,7 @@ export function InventoryLedgerClient({
   }
 
   function handleSourceChange(value: string) {
+    clearSearchDebounce();
     setSource(value);
     startTransition(() => {
       router.push(
@@ -142,6 +205,7 @@ export function InventoryLedgerClient({
   }
 
   function handleReset() {
+    clearSearchDebounce();
     setSearch("");
     startTransition(() => {
       router.push(
@@ -158,20 +222,26 @@ export function InventoryLedgerClient({
 
   async function handleLoadMore() {
     if (isLoadingMore || !hasMore) return;
-    setIsLoadingMore(true);
+    // Capture the key + data signature this request belongs to so a user who
+    // navigates/filters mid-flight doesn't attach stale rows to the new view.
+    const requestUrlKey = urlKey;
+    const requestSig = initialDataSig;
+    const baseRows = activeLoadMore?.rows ?? [];
+    setLoadingMoreUrlKey(requestUrlKey);
     try {
       const nextPage = page + 1;
       const result = await getInventoryLogs({
         page: nextPage,
         pageSize: 20,
-        search: search.trim() || undefined,
-        from,
-        to,
-        source: source === "all" ? undefined : source,
+        search: searchValue.trim() || undefined,
+        from: fromValue,
+        to: toValue,
+        source: sourceValue === "all" ? undefined : sourceValue,
       });
       setLoadMore({
-        urlKey,
-        rows: [...(activeLoadMore?.rows ?? []), ...result.logs],
+        urlKey: requestUrlKey,
+        sig: requestSig,
+        rows: [...baseRows, ...result.logs],
         page: result.page,
         hasMore: result.hasMore,
         totalCount: result.totalCount,
@@ -179,14 +249,14 @@ export function InventoryLedgerClient({
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر تحميل المزيد");
     } finally {
-      setIsLoadingMore(false);
+      setLoadingMoreUrlKey(null);
     }
   }
 
   function serializeForCopy(target: InventoryLogRow[]): string {
     return target
       .map((log, index) => {
-        const actor = log.userId ? `#${log.userId}` : "#النظام";
+        const actor = actorLabel(log);
         const verb = log.change >= 0 ? "إضافة" : "خصم";
         const order =
           log.orderId != null
@@ -225,7 +295,7 @@ export function InventoryLedgerClient({
   }
 
   function renderActor(log: InventoryLogRow) {
-    return log.userId ? `#${log.userId}` : "#النظام";
+    return actorLabel(log);
   }
 return (
     <div className="space-y-6" dir="rtl">
@@ -264,6 +334,12 @@ return (
               type="date"
               value={from}
               onChange={(e) => handleFromChange(e.target.value)}
+              onFocus={() => {
+                editingRef.current.from = true;
+              }}
+              onBlur={() => {
+                editingRef.current.from = false;
+              }}
               aria-label="من تاريخ"
               className="w-auto"
             />
@@ -272,6 +348,12 @@ return (
               type="date"
               value={to}
               onChange={(e) => handleToChange(e.target.value)}
+              onFocus={() => {
+                editingRef.current.to = true;
+              }}
+              onBlur={() => {
+                editingRef.current.to = false;
+              }}
               aria-label="إلى تاريخ"
               className="w-auto"
             />
@@ -346,7 +428,7 @@ return (
                     <span className="text-muted-foreground">وحدة على المنتج &quot;</span>
                     {log.productId != null ? (
                       <Link
-                        href={`/profile/admin/products/${log.productId}`}
+                        href={`/profile/admin/products/${log.productId}?view=true`}
                         className=" underline underline-offset-4"
                       >
                         {log.productName ?? "منتج غير متوفر"}
