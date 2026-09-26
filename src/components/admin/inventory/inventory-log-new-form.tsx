@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Resolver } from "react-hook-form";
@@ -22,6 +23,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { inventoryLogSchema } from "@/lib/zod/inventory";
 import type { InventoryLogFormValues } from "@/lib/zod/inventory";
 import { createInventoryLog } from "@/lib/actions/inventory";
@@ -37,6 +47,12 @@ interface InventoryLogNewFormProps {
 
 export function InventoryLogNewForm({ onDone }: InventoryLogNewFormProps) {
   const router = useRouter();
+
+  // Whether this entry should also mutate the product's physical stock. Default
+  // ON — applying the stock effect is the primary (intended) action.
+  const [applyToStock, setApplyToStock] = useState(true);
+  // Only shown when the entry would mutate stock (a consequential action).
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const form = useForm<InventoryLogFormValues>({
     resolver: zodResolver(inventoryLogSchema) as Resolver<InventoryLogFormValues>,
@@ -57,9 +73,9 @@ export function InventoryLogNewForm({ onDone }: InventoryLogNewFormProps) {
 
   const direction = useWatch({ control, name: "direction" });
 
-  async function onSubmit(data: InventoryLogFormValues) {
+  async function save(data: InventoryLogFormValues, stock: boolean) {
     try {
-      await createInventoryLog(data);
+      await createInventoryLog(data, { applyToStock: stock });
       toast.success("تمت إضافة السجل بنجاح");
       onDone?.();
       router.push("/profile/admin/inventory");
@@ -68,12 +84,29 @@ export function InventoryLogNewForm({ onDone }: InventoryLogNewFormProps) {
     }
   }
 
+  function onSubmit(data: InventoryLogFormValues) {
+    // Stock-affecting entries ask for confirmation first; log-only entries submit
+    // straight away (non-consequential).
+    if (applyToStock) {
+      setConfirmOpen(true);
+    } else {
+      void save(data, false);
+    }
+  }
+
+  function onConfirmApply() {
+    setConfirmOpen(false);
+    // The dialog only opens after a validated submit, so the current values are valid.
+    void save(form.getValues(), true);
+  }
+
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="space-y-6"
-      noValidate
-    >
+    <>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-6"
+        noValidate
+      >
       {/* SKU */}
       <Field>
         <FieldLabel htmlFor="sku">رمز SKU</FieldLabel>
@@ -157,11 +190,23 @@ export function InventoryLogNewForm({ onDone }: InventoryLogNewFormProps) {
         </FieldContent>
       </Field>
 
+      {/* Apply to stock toggle */}
+      <div className="flex items-center justify-between gap-4 rounded-lg border px-4 py-3">
+        <div className="space-y-0.5">
+          <p className="text-sm font-medium">تطبيق التغيير على مخزون المنتج الفعلي</p>
+          <p className="text-xs text-muted-foreground">
+            عند التفعيل، يتم تحديث الكمية الفعلية للمنتج وتُسجَّل في هذه الحركة.
+          </p>
+        </div>
+        <Switch
+          checked={applyToStock}
+          onCheckedChange={setApplyToStock}
+          aria-label="تطبيق التغيير على المخزون"
+        />
+      </div>
+
       <div className="flex items-center justify-end gap-2">
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-        >
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -172,6 +217,28 @@ export function InventoryLogNewForm({ onDone }: InventoryLogNewFormProps) {
           )}
         </Button>
       </div>
-    </form>
+      </form>
+
+      <Dialog open={confirmOpen} onOpenChange={(next) => !next && setConfirmOpen(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>تأكيد تطبيق التغيير على المخزون</DialogTitle>
+            <DialogDescription>
+              سيتم تعديل الكمية الفعلية للمنتج وفق هذا السجل ولا يمكن التراجع عنه بسهولة.
+              هل تريد المتابعة؟
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>
+              إلغاء
+            </Button>
+            <Button type="button" onClick={onConfirmApply} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              نعم، تطبيق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

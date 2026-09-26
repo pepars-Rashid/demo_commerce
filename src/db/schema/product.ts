@@ -6,7 +6,9 @@ import {
   decimal,
   jsonb,
   index,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { timestamps } from "./helpers";
 
 // ── Product Category ───────────────────────────────────────────────────────
@@ -46,6 +48,7 @@ export const product = pgTable(
   },
   (table) => [
     index("product_category_id_idx").on(table.categoryId),
+    check("product_total_stock_nonneg", sql`${table.totalStock} >= 0`),
   ]
 );
 
@@ -70,6 +73,8 @@ export const productItem = pgTable(
   },
   (table) => [
     index("product_item_product_id_idx").on(table.productId),
+    check("product_item_qty_in_stock_nonneg", sql`${table.qtyInStock} >= 0`),
+    check("product_item_reserved_stock_nonneg", sql`${table.reservedStock} >= 0`),
   ]
 );
 
