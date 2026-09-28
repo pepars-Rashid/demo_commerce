@@ -1,6 +1,9 @@
 import { z } from "zod";
 
 export const productItemSchema = z.object({
+  // Existing row id (threaded from the edit page) -> drives the bulk UPDATE / diff
+  // cleanup. Absent/undefined on brand-new rows -> INSERT.
+  id: z.string().optional().nullable(),
   key: z.string().optional(),
   sku: z.string().min(1, "رمز المنتج (SKU) مطلوب"),
   price: z.coerce.number().min(0, "السعر يجب أن يكون 0 أو أكثر"),

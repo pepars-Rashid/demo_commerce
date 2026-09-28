@@ -76,6 +76,7 @@ function defaultValues(
     productImage: product.productImage ?? "",
     categoryId: product.categoryId,
     items: (productItems ?? []).map((i) => ({
+      id: i.id ?? undefined,
       sku: i.sku,
       price: i.price,
       discountPrice: i.discountPrice,

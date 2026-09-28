@@ -6,7 +6,7 @@ import {
   productItem as productItemTable,
   productCategory as productCategoryTable,
 } from "@/db/schema";
-import { eq, sql, ilike, count, and, asc, desc, inArray, isNull } from "drizzle-orm";
+import { eq, sql, ilike, count, and, asc, desc, inArray, isNull, notInArray, type SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth/auth";
 import { isAdmin } from "@/lib/auth/permissions";
@@ -72,6 +72,20 @@ async function assertAdmin() {
     throw new Error("غير مصرح");
   }
   return session;
+}
+
+// Soft-delete product items: preserve history, hide from reads (deletedAt), and
+// free each unique SKU by renaming it to `{sku}_DELETED_{id}` so a removed
+// variant can later be re-added under the same SKU. Rows are never hard-deleted,
+// so inventory_log references stay valid.
+async function softDeleteItems(where: SQL) {
+  await db
+    .update(productItemTable)
+    .set({
+      deletedAt: sql`now()`,
+      sku: sql`concat(coalesce(${productItemTable.sku}, ''), '_DELETED_', ${productItemTable.id})`,
+    })
+    .where(and(where, isNull(productItemTable.deletedAt)));
 }
 
 // ─── GET: Paginated product list ────────────────────────────────────────────
@@ -269,7 +283,7 @@ export async function createProduct(data: ProductFormValues) {
   return { success: true as const, id: newProduct.id };
 }
 
-// ─── UPDATE: Product + replace items ────────────────────────────────────────
+// ─── UPDATE: Product + diff-based item merge (bulk, atomic) ─────────────────
 
 export async function updateProduct(id: number, data: ProductFormValues) {
   await assertAdmin();
@@ -278,46 +292,116 @@ export async function updateProduct(id: number, data: ProductFormValues) {
   if (!parsed.success) {
     throw new Error("بيانات غير صحيحة");
   }
-
   const { name, description, basePrice, productImage, categoryId, items } =
     parsed.data;
+  if (items.length === 0) {
+    throw new Error("أضف متغيراً واحداً على الأقل");
+  }
 
   const totalStock = items.reduce(
     (sum, item) => sum + Number(item.qtyInStock),
     0,
   );
 
-  // Update product
-  await db
-    .update(productTable)
-    .set({
-      categoryId: Number(categoryId),
-      name,
-      description: description ?? null,
-      basePrice: String(basePrice),
-      totalStock,
-      productImage: productImage ?? null,
-    })
-    .where(eq(productTable.id, id));
+  // Existing rows carry an id (threaded through the form); brand-new rows don't.
+  const kept = items.filter((it) => it.id != null && it.id !== "");
+  const keptIds = kept.map((it) => Number(it.id));
+  const newItems = items.filter((it) => it.id == null || it.id === "");
 
-  // Delete old items (hard delete — they're not soft-deletable per schema)
-  await db
-    .delete(productItemTable)
-    .where(eq(productItemTable.productId, id));
+  // ── Multi-column CASE WHEN: bulk-update kept rows in a single UPDATE ──
+  const skuChunks: SQL[] = [sql`(case`];
+  const qtyChunks: SQL[] = [sql`(case`];
+  const priceChunks: SQL[] = [sql`(case`];
+  const discountChunks: SQL[] = [sql`(case`];
+  const imagesChunks: SQL[] = [sql`(case`];
+  const variantsChunks: SQL[] = [sql`(case`];
+  for (const item of kept) {
+    const itemId = Number(item.id);
+    // Bind with explicit PG casts: raw CASE-WHEN fragments lose the column
+    // type, and text params aren't implicitly castable to int/numeric, so each
+    // non-text value is cast explicitly (jsonb values sent as JSON strings).
+    skuChunks.push(sql`when ${productItemTable.id} = ${itemId} then ${item.sku || null}`);
+    qtyChunks.push(sql`when ${productItemTable.id} = ${itemId} then ${Number(item.qtyInStock)}::int`);
+    priceChunks.push(sql`when ${productItemTable.id} = ${itemId} then ${String(item.price)}::numeric`);
+    discountChunks.push(sql`when ${productItemTable.id} = ${itemId} then ${String(item.discountPrice != null ? item.discountPrice : null)}::numeric`);
+    imagesChunks.push(sql`when ${productItemTable.id} = ${itemId} then ${JSON.stringify(item.images ?? [])}::jsonb`);
+    variantsChunks.push(sql`when ${productItemTable.id} = ${itemId} then ${JSON.stringify(item.variants.length > 0 ? rowVariantsToJson(item.variants) : {})}::jsonb`);
+  }
+  skuChunks.push(sql`end)`);
+  qtyChunks.push(sql`end)`);
+  priceChunks.push(sql`end)`);
+  discountChunks.push(sql`end)`);
+  imagesChunks.push(sql`end)`);
+  variantsChunks.push(sql`end)`);
 
-  // Insert new items (bulk)
-  await db.insert(productItemTable).values(
-    items.map((item) => ({
-      productId: id,
-      sku: item.sku || null,
-      qtyInStock: Number(item.qtyInStock),
-      price: String(item.price),
-      discountPrice:
-        item.discountPrice != null ? String(item.discountPrice) : null,
-      images: item.images ?? [],
-      variantsJson:
-        item.variants.length > 0 ? rowVariantsToJson(item.variants) : {},
-    })),
+  const combine = (chunks: SQL[]) => sql.join(chunks, sql.raw(" "));
+
+  // ── One atomic batch ──
+  const statements = [
+    db.update(productTable)
+      .set({
+        categoryId: Number(categoryId),
+        name,
+        description: description ?? null,
+        basePrice: String(basePrice),
+        totalStock,
+        productImage: productImage ?? null,
+      })
+      .where(eq(productTable.id, id)),
+
+    // soft-delete removed items FIRST (frees their SKU before any insert below)
+    db.update(productItemTable)
+      .set({
+        deletedAt: sql`now()`,
+        sku: sql`concat(coalesce(${productItemTable.sku}, ''), '_DELETED_', ${productItemTable.id})`,
+      })
+      .where(
+        and(
+          eq(productItemTable.productId, id),
+          isNull(productItemTable.deletedAt),
+          keptIds.length > 0
+            ? notInArray(productItemTable.id, keptIds)
+            : undefined,
+        ),
+      ),
+
+    ...(keptIds.length > 0
+      ? [
+          db.update(productItemTable)
+            .set({
+              sku: combine(skuChunks),
+              qtyInStock: combine(qtyChunks),
+              price: combine(priceChunks),
+              discountPrice: combine(discountChunks),
+              images: combine(imagesChunks),
+              variantsJson: combine(variantsChunks),
+            })
+            .where(and(inArray(productItemTable.id, keptIds), isNull(productItemTable.deletedAt))),
+        ]
+      : []),
+
+    ...(newItems.length > 0
+      ? [
+          db.insert(productItemTable).values(
+            newItems.map((item) => ({
+              productId: id,
+              sku: item.sku || null,
+              qtyInStock: Number(item.qtyInStock),
+              price: String(item.price),
+              discountPrice:
+                item.discountPrice != null ? String(item.discountPrice) : null,
+              images: item.images ?? [],
+              variantsJson:
+                item.variants.length > 0 ? rowVariantsToJson(item.variants) : {},
+            })),
+          ),
+        ]
+      : []),
+  ];
+
+  type BatchStatement = (typeof statements)[number];
+  await db.batch(
+    statements as unknown as Readonly<[BatchStatement, ...BatchStatement[]]>,
   );
 
   revalidatePath("/profile/admin/products");
@@ -335,11 +419,8 @@ export async function deleteProduct(id: number) {
     .set({ deletedAt: sql`now()` })
     .where(eq(productTable.id, id));
 
-  // Also soft-delete its items
-  await db
-    .update(productItemTable)
-    .set({ deletedAt: sql`now()` })
-    .where(eq(productItemTable.productId, id));
+  // Also soft-delete its items (frees their unique SKUs via the helper)
+  await softDeleteItems(eq(productItemTable.productId, id));
 
   revalidatePath("/profile/admin/products");
 }
@@ -354,11 +435,8 @@ export async function batchDeleteProducts(ids: number[]) {
     .set({ deletedAt: sql`now()` })
     .where(inArray(productTable.id, ids));
 
-  // Bulk soft-delete all items for the given products
-  await db
-    .update(productItemTable)
-    .set({ deletedAt: sql`now()` })
-    .where(inArray(productItemTable.productId, ids));
+  // Bulk soft-delete all items for the given products (frees their unique SKUs)
+  await softDeleteItems(inArray(productItemTable.productId, ids));
 
   revalidatePath("/profile/admin/products");
 }
