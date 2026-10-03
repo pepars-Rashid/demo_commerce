@@ -26,6 +26,9 @@
 - **Enum-like columns** — `varchar(length, enum: [...])` pattern, not `pgEnum` or a lookup table
 - **Column types** — `varchar` with explicit length, never `text`
 - **Aggregated denormalized fields** — `product.totalStock` (integer, default 0) is denormalized from `product_item.qty_in_stock` and maintained by server actions — do not compute on read
+- **Stock non-negative CHECKs** — `product.total_stock`, `product_item.qty_in_stock`, `product_item.reserved_stock` all guarded by `check(..., sql`${col} >= 0`)` — DB rejects negative stock (aborts the atomic batch)
+- **No interactive transactions** — neon-http driver: `db.transaction()` throws; use atomic `db.batch([...])` for multi-statement mutations
+- **Item soft-delete** — `product_item` soft-deletes (like products); SKU freed by renaming to `{sku}_DELETED_{id}` so it's reusable
 
 ## Varchar length reference
 | Column | Length | Reason |
@@ -52,7 +55,8 @@
 | Column | Type | Notes |
 |---|---|---|
 | `product.basePrice`, `product_item.price`, `product_item.discountPrice`, `shop_order.orderTotal`, `order_line.price` | `decimal(12,2)` | Monetary — strings from DB, coerce with `Number()` |
-| `product.totalStock`, `product_item.qtyInStock`, `product_item.reservedStock`, `inventory_log.change` | `integer` | Stock amounts |
+| `product.totalStock`, `product_item.qtyInStock`, `product_item.reservedStock` | `integer` | Stock amounts; guarded by `>= 0` CHECKs (DB rejects negative → aborts atomic batch) |
+| `inventory_log.change` | `integer` | Delta, can be negative (unbounded) |
 | `product_item.images`, `product_item.variantsJson` | `jsonb` | Gallery array + denormalized `Record<string,string>` |
 | `product.id`, `productCategory.id`, etc. | `serial` | Auto-increment IDs |
 | `users.id` | `varchar(36)` | UUID via `crypto.randomUUID()` |
@@ -83,3 +87,4 @@ src/db/
 - Do NOT read `src/db/db.ts` (client instantiation only) unless debugging connection issues
 - Mock types in `src/lib/mock/types.ts` mirror these field names exactly — read it for UI-facing shapes instead of re-reading schema
 - Server action types (e.g. `ProductListResult` in `@/lib/actions/product.ts`) are the real data contracts for pages
+- Product mutations optionally write `inventory_log` rows via non-blocking `after()` from `next/server` (`@/lib/actions/product.ts`); the log insert never runs in the request path

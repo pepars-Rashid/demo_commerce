@@ -7,7 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Project Status
 - Drizzle ORM + Neon, NextAuth.js v5 (JWT), Shadcn UI (--rtl), Tailwind v4 — **all configured**
 - Auth (login/signup/logout, Google + credentials) — **complete**
-- Admin panel: **products fully built** (list CRUD + modal interception), **orders/categories/inventory/users are placeholders**
+- Admin panel: **products/categories/inventory/orders REAL DB** (products fully built + audit-logged; inventory ledger + manual logs real; orders list/detail/status real), **users placeholder**
 - `<html lang="ar" dir="rtl">` — Arabic-first, all UI text in Arabic
 
 ## 📍 Technical Map — WHERE EVERYTHING LIVES
@@ -17,14 +17,14 @@ Read this before starting any task. Target only the files below — no blind dir
 |---|---|---|
 | **Routes (App Router)** | `src/app/**` | Admin routes under `src/app/profile/admin/` |
 | **Admin layout guard** | `src/app/profile/admin/layout.tsx` | `requireAdmin()` + sidebar + Toaster — do not re-check auth in pages |
-| **Server actions (DB CRUD)** | `src/lib/actions/` | `product.ts` = getProducts/getProductById/createProduct/updateProduct/deleteProduct/batchDeleteProducts/getProductCategories |
-| **Form validation schemas** | `src/lib/zod/` | `login.ts`, `signup.ts`, `product.ts` |
+| **Server actions (DB CRUD)** | `src/lib/actions/` | `product.ts` = getProducts/getProductById/createProduct/updateProduct/deleteProduct/batchDeleteProducts/getProductCategories · `inventory.ts` = getInventoryLogs/createInventoryLog · `order.ts` = getOrders/getOrderById/updateOrderStatus |
+| **Form validation schemas** | `src/lib/zod/` | `login.ts`, `signup.ts`, `product.ts`, `inventory.ts` |
 | **DB schema (Drizzle)** | `src/db/schema/` | `auth.ts`, `product.ts`, `cart.ts`, `order.ts`, `relations.ts`, `index.ts` (barrel) |
 | **DB client** | `src/db/db.ts` | Drizzle instantiation |
 | **Seed data** | `src/db/seed/` | Users, products, variations + JSON data files |
 | **Auth config** | `src/lib/auth/` | `auth.ts` (NextAuth), `password.ts` (bcrypt), `require-admin.ts` (DB role check), `auth-types.d.ts` |
-| **Mock data (legacy/bridge)** | `src/lib/mock/` | Types used by product forms as bridge; orders/categories/inventory/users mocks for placeholders |
-| **Client components (admin)** | `src/components/admin/` | Shared (`page-header`, `delete-dialog`, `empty-state`, `icon-action-button`, badges) + `products/` (forms, list) |
+| **Mock data (legacy/bridge)** | `src/lib/mock/` | Types used by product forms as bridge; users mock for placeholder |
+| **Client components (admin)** | `src/components/admin/` | Shared (`page-header`, `delete-dialog`, `empty-state`, `icon-action-button`, badges) + `products/` (forms, list), `inventory/` (ledger, log form), `orders/` (list, detail, status) |
 | **Shadcn UI primitives** | `src/components/ui/` | Installed components — see `.clinerules/UI.md` |
 | **Sidebar** | `src/components/app-sidebar.tsx` | Admin nav — do not modify (minor polish ok) |
 | **Formatting helpers** | `src/lib/admin-format.ts` | Arabic currency/date/number formatters |
@@ -36,6 +36,8 @@ Read this before starting any task. Target only the files below — no blind dir
 - **Types**: `@/lib/mock/types.ts` — field names mirror `src/db/schema/` exactly (bridging pattern). Real action types exported from `@/lib/actions/product.ts` (`ProductListResult`, `ProductDetail`)
 - **DB schema**: always the source of truth for field names — see `.clinerules/DATABASE.md`
 - **Auth**: JWT role cached in token; `auth()` for server checks; `requireAdmin()` for admin layout (DB-checks role each request — intentional); `assertAdmin()` in server actions (JWT-only)
+- **Product update = atomic UPSERT**: `updateProduct` runs one `db.batch` → soft-delete removed items + multi-column `CASE WHEN` update of kept rows + INSERT new. `productItem.id` threaded through the form drives the diff — no delete+recreate
+- **Inventory audit logging**: product mutations write `inventory_log` rows via non-blocking `after()` from `next/server` (reasons `product_created/updated/deleted/batch_deleted`). Do NOT put these inserts inside the request path
 
 ## ⚠️ Context Saving Protocol (READ BEFORE EVERY TASK)
 1. **New admin page (orders/categories/inventory/users)**: read `.clinerules/UI.md` → `.clinerules/DATABASE.md` → `src/db/schema/<domain>.ts` → `src/db/schema/relations.ts` → existing mock file (`src/lib/mock/<domain>.ts`) → the closest *built* page as reference (`src/app/profile/admin/products/` + `src/components/admin/products/`). **Do NOT read** `src/lib/auth/`, `src/db/db.ts`, or unrelated schema domains.
