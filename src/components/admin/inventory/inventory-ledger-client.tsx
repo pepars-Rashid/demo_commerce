@@ -263,7 +263,8 @@ export function InventoryLedgerClient({
             ? ` من الطلب #${log.orderId}`
             : " من تعديل يدوي (لا طلب)";
         const product = log.productName ?? "منتج محذوف";
-        return `${index + 1}. ${actor}: ${verb} ${formatNumber(Math.abs(log.change))} وحدة على المنتج "${product}"${order} لسبب "${log.reason}" في ${formatDateTime(log.createdAt)} #${log.id}`;
+        const unit = log.sku ? ` — الوحدة "${log.sku}"` : "";
+        return `${index + 1}. ${actor}: ${verb} ${formatNumber(Math.abs(log.change))} وحدة على المنتج "${product}"${unit}${order} لسبب "${log.reason}" في ${formatDateTime(log.createdAt)} #${log.id}`;
       })
       .join("\n");
   }
@@ -437,6 +438,15 @@ return (
                       <span className="font-medium">{log.productName ?? "منتج محذوف"}</span>
                     )}
                     <span className="text-muted-foreground">&quot;</span>{" "}
+                    {log.sku ? (
+                      <>
+                        <span className="text-muted-foreground">
+                          — الوحدة &quot;
+                        </span>
+                        <span className="font-medium">{log.sku}</span>
+                        <span className="text-muted-foreground">&quot;</span>{" "}
+                      </>
+                    ) : null}
                     {log.orderId != null ? (
                       <span className="text-muted-foreground">
                         من الطلب{" "}

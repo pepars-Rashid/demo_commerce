@@ -1,18 +1,18 @@
 // Shared formatting helpers for the admin panel (Arabic / RTL).
 
-const currencyNumberFormatter = new Intl.NumberFormat("ar-SA", {
+const currencyNumberFormatter = new Intl.NumberFormat("ar-SA-u-nu-latn", {
   maximumFractionDigits: 2,
 });
 
-const numberFormatter = new Intl.NumberFormat("ar-SA");
+const numberFormatter = new Intl.NumberFormat("ar-SA-u-nu-latn");
 
-const dateFormatter = new Intl.DateTimeFormat("ar-SA", {
+const dateFormatter = new Intl.DateTimeFormat("ar-SA-u-nu-latn", {
   year: "numeric",
   month: "long",
   day: "numeric",
 });
 
-const dateTimeFormatter = new Intl.DateTimeFormat("ar-SA", {
+const dateTimeFormatter = new Intl.DateTimeFormat("ar-SA-u-nu-latn", {
   year: "numeric",
   month: "long",
   day: "numeric",
