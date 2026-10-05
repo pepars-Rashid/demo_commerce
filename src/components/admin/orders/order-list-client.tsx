@@ -20,7 +20,8 @@ import { IconActionButton } from "@/components/admin/icon-action-button";
 import {
   OrderStatusBadge, orderStatusOptions,
 } from "@/components/admin/order-status-badge";
-import { formatCurrency, formatDate } from "@/lib/admin-format";
+import { ClientDateTime } from "@/components/admin/client-date-time";
+import { formatCurrency } from "@/lib/admin-format";
 import { cn } from "@/lib/utils";
 import type { OrderListResult } from "@/lib/actions/order";
 
@@ -167,7 +168,7 @@ export function OrderListClient({
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-muted-foreground">
-                    {formatDate(o.orderDate)}
+                    <ClientDateTime value={o.orderDate} time={false} />
                   </TableCell>
                   <TableCell className="text-center">{o.lineCount}</TableCell>
                   <TableCell className="font-medium">{formatCurrency(Number(o.orderTotal))}</TableCell>

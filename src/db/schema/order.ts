@@ -29,7 +29,7 @@ export const shopOrder = pgTable(
     userId: varchar("user_id", { length: 36 })
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
-    orderDate: timestamp("order_date", { mode: "date" })
+    orderDate: timestamp("order_date", { withTimezone: true, mode: "date" })
       .notNull()
       .defaultNow(),
     orderTotal: decimal("order_total", { precision: 12, scale: 2 }).notNull(),

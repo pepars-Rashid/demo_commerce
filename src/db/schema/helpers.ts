@@ -1,25 +1,28 @@
+import { sql } from "drizzle-orm";
 import { timestamp } from "drizzle-orm/pg-core";
 
 /**
- * Shared timestamp columns for soft-deletable tables.
- * `createdAt` / `updatedAt` with auto-update, and nullable `deletedAt`.
+ * Shared timestamps for soft-deletable tables (`createdAt`/`updatedAt`
+ * auto-updated, nullable `deletedAt`). Stored as `timestamptz`: Postgres keeps
+ * one absolute UTC instant; viewers format it to their own local tz on the client.
  */
 export const timestamps = {
-  createdAt: timestamp("created_at", { mode: "date" })
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
     .notNull()
     .defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "date" })
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
     .notNull()
     .defaultNow()
-    .$onUpdate(() => new Date()),
-  deletedAt: timestamp("deleted_at", { mode: "date" }),
+    // DB clock (not app clock) so updatedAt matches createdAt's `now()`.
+    .$onUpdate(() => sql`now()`),
+  deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "date" }),
 };
 
 /**
  * Simplified timestamps for immutable / append-only tables (no updatedAt, no deletedAt).
  */
 export const createdAtOnly = {
-  createdAt: timestamp("created_at", { mode: "date" })
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
     .notNull()
     .defaultNow(),
 };

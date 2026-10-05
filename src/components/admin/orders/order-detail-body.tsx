@@ -8,7 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { formatCurrency, formatDateTime } from "@/lib/admin-format";
+import { ClientDateTime } from "@/components/admin/client-date-time";
+import { formatCurrency } from "@/lib/admin-format";
 import type { OrderDetail } from "@/lib/actions/order";
 
 interface OrderDetailBodyProps {
@@ -38,7 +39,7 @@ export function OrderDetailBody({ order, statusSlot }: OrderDetailBodyProps) {
           <div className="flex flex-wrap items-center gap-3">
             {statusSlot ?? null}
             <span className="text-sm text-muted-foreground">
-              {formatDateTime(order.orderDate)}
+              <ClientDateTime value={order.orderDate} />
             </span>
           </div>
 
@@ -58,7 +59,9 @@ export function OrderDetailBody({ order, statusSlot }: OrderDetailBodyProps) {
               <p className="text-xs font-medium text-muted-foreground">
                 تاريخ الإنشاء
               </p>
-              <p className="text-sm">{formatDateTime(order.createdAt)}</p>
+              <p className="text-sm">
+                <ClientDateTime value={order.createdAt} />
+              </p>
             </div>
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground">

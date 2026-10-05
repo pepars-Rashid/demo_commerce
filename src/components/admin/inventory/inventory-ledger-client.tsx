@@ -18,7 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/admin/page-header";
 import { EmptyState } from "@/components/admin/empty-state";
-import { formatDateTime, formatNumber } from "@/lib/admin-format";
+import { ClientDateTime, formatClientDateTime } from "@/components/admin/client-date-time";
+import { formatNumber } from "@/lib/admin-format";
 import { getInventoryLogs } from "@/lib/actions/inventory";
 import type { InventoryLedgerResult, InventoryLogRow } from "@/lib/actions/inventory";
 
@@ -264,7 +265,7 @@ export function InventoryLedgerClient({
             : " من تعديل يدوي (لا طلب)";
         const product = log.productName ?? "منتج محذوف";
         const unit = log.sku ? ` — الوحدة "${log.sku}"` : "";
-        return `${index + 1}. ${actor}: ${verb} ${formatNumber(Math.abs(log.change))} وحدة على المنتج "${product}"${unit}${order} لسبب "${log.reason}" في ${formatDateTime(log.createdAt)} #${log.id}`;
+        return `${index + 1}. ${actor}: ${verb} ${formatNumber(Math.abs(log.change))} وحدة على المنتج "${product}"${unit}${order} لسبب "${log.reason}" في ${formatClientDateTime(log.createdAt)} #${log.id}`;
       })
       .join("\n");
   }
@@ -465,7 +466,7 @@ return (
                     <span className="text-muted-foreground">، لسبب &quot;</span>
                     {log.reason}
                     <span className="text-muted-foreground">&quot; في </span>
-                    {formatDateTime(log.createdAt)}{" "}
+                    <ClientDateTime value={log.createdAt} />{" "}
                     <span className="text-muted-foreground">#{log.id}</span>
                   </div>
                 ))}

@@ -24,7 +24,7 @@ export const users = pgTable(
       .$defaultFn(() => crypto.randomUUID()),
     name: varchar("name", { length: 255 }),
     email: varchar("email", { length: 255 }).unique(),
-    emailVerified: timestamp("email_verified", { mode: "date" }),
+    emailVerified: timestamp("email_verified", { withTimezone: true, mode: "date" }),
     image: varchar("image", { length: 2048 }),
     password: varchar("password", { length: 255 }),
     role: varchar("role", { length: 20, enum: roleValues })
@@ -68,7 +68,7 @@ export const sessions = pgTable(
     userId: varchar("user_id", { length: 36 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    expires: timestamp("expires", { mode: "date" }).notNull(),
+    expires: timestamp("expires", { withTimezone: true, mode: "date" }).notNull(),
     ...timestamps,
   },
   (table) => [
@@ -82,7 +82,7 @@ export const verificationTokens = pgTable(
   {
     identifier: varchar("identifier", { length: 255 }).notNull(),
     token: varchar("token", { length: 255 }).notNull(),
-    expires: timestamp("expires", { mode: "date" }).notNull(),
+    expires: timestamp("expires", { withTimezone: true, mode: "date" }).notNull(),
   },
   (table) => [
     primaryKey({ columns: [table.identifier, table.token] }),
