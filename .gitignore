@@ -42,3 +42,6 @@ next-env.d.ts
 
 # personal
 FORME.md
+
+# seed cache (fetched from DummyJSON) — generated, not committed
+/src/db/seed/data/dummyjson-*.json

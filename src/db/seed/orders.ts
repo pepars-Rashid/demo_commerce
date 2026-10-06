@@ -1,231 +1,194 @@
 import { db } from "@/db/db";
+import { sql } from "drizzle-orm";
 import {
   inventoryLog,
   orderLine,
   product,
   productItem,
   shopOrder,
-  users,
   type OrderStatus,
 } from "@/db/schema";
-import { hashPassword } from "@/lib/auth/password";
-import { asc, eq, sql } from "drizzle-orm";
-import type { SeededUser } from "./users";
+import { mulberry32, randInt, daysAgoUtc } from "./utils";
+import type { SeedActors } from "./users";
+import type { CatalogItem } from "./products";
 
-// Demo customers referenced by orders. The admin (superAdmin) is seeded separately
-// in users.ts and passed in as the actor for admin stock adjustments.
-interface CustomerSeed {
-  name: string;
-  email: string;
-  role: "user" | "operationManager";
-}
-
-const CUSTOMERS: CustomerSeed[] = [
-  { name: "سارة العتيبي", email: "sara@example.com", role: "user" },
-  { name: "خالد الدوسري", email: "khaled@example.com", role: "user" },
-  { name: "نورة القحطاني", email: "noura@example.com", role: "user" },
-  { name: "ريم الحربي", email: "reem@example.com", role: "user" },
-  { name: "فيصل الشهري", email: "faisal@example.com", role: "operationManager" },
+const PRNG_SEED = 1234567;
+const ADDRESSES = [
+  "حي الياسمين، شارع الأمير محمد، الرياض 13325",
+  "حي النخيل، طريق الملك فهد، جدة 23442",
+  "حي العزيزية، شارع التحلية، الدمام 32424",
+  "حي الروضة، شارع الستين، الرياض 12831",
+  "حي الحمراء، شارع فلسطين، جدة 23522",
+  "حي الملقا، طريق الملك عبدالعزيز، الرياض 13514",
+  "حي الأندلس، شارع التخصصي، جدة 23325",
+  "حي الراكة، طريق الأمير سلطان، الخبر 34421",
 ];
 
-interface OrderLineDef {
-  /** index into the product items array (fetched ordered by id) */
-  itemIndex: number;
-  qty: number;
-}
+// DummyJSON ids we treat as "hot sellers" so the best-seller chart has clear winners.
+const HOT_DUMMY_IDS = new Set([122, 78, 174, 100, 181, 187, 4, 85]);
 
-interface OrderDef {
-  customerEmail: string;
-  status: OrderStatus;
-  daysAgo: number;
-  shippingAddress: string;
-  lines: OrderLineDef[];
-}
-
-// A spread of orders across all statuses so M3 has full coverage.
-// Line items reference seeded product items by their position.
-const ORDERS: OrderDef[] = [
-  {
-    customerEmail: "sara@example.com",
-    status: "delivered",
-    daysAgo: 12,
-    shippingAddress: "حي الياسمين، شارع الأمير محمد، الرياض 13325",
-    lines: [
-      { itemIndex: 6, qty: 1 },
-      { itemIndex: 2, qty: 1 },
-      { itemIndex: 1, qty: 2 },
-    ],
-  },
-  {
-    customerEmail: "khaled@example.com",
-    status: "shipped",
-    daysAgo: 10,
-    shippingAddress: "حي النخيل، طريق الملك فهد، جدة 23442",
-    lines: [{ itemIndex: 2, qty: 1 }],
-  },
-  {
-    customerEmail: "noura@example.com",
-    status: "paid",
-    daysAgo: 8,
-    shippingAddress: "حي العزيزية، شارع التحلية، الدمام 32424",
-    lines: [{ itemIndex: 3, qty: 1 }],
-  },
-  {
-    customerEmail: "reem@example.com",
-    status: "pending",
-    daysAgo: 6,
-    shippingAddress: "حي الروضة، شارع الستين، الرياض 12831",
-    lines: [{ itemIndex: 1, qty: 2 }],
-  },
-  {
-    customerEmail: "sara@example.com",
-    status: "cancelled",
-    daysAgo: 9,
-    shippingAddress: "حي الياسمين، شارع الأمير محمد، الرياض 13325",
-    lines: [{ itemIndex: 0, qty: 1 }],
-  },
-  {
-    customerEmail: "khaled@example.com",
-    status: "paid",
-    daysAgo: 5,
-    shippingAddress: "حي النخيل، طريق الملك فهد، جدة 23442",
-    lines: [{ itemIndex: 4, qty: 1 }],
-  },
-  {
-    customerEmail: "noura@example.com",
-    status: "delivered",
-    daysAgo: 3,
-    shippingAddress: "حي العزيزية، شارع التحلية، الدمام 32424",
-    lines: [{ itemIndex: 5, qty: 2 }],
-  },
-  {
-    customerEmail: "reem@example.com",
-    status: "shipped",
-    daysAgo: 2,
-    shippingAddress: "حي الروضة، شارع الستين، الرياض 12831",
-    lines: [{ itemIndex: 7, qty: 1 }],
-  },
+const STATUS_PLAN: { status: OrderStatus; count: number; band: [number, number] }[] = [
+  { status: "delivered", count: 36, band: [56, 21] },
+  { status: "shipped", count: 16, band: [28, 7] },
+  { status: "paid", count: 12, band: [14, 2] },
+  { status: "pending", count: 8, band: [6, 0] },
+  { status: "cancelled", count: 8, band: [49, 1] },
 ];
 
-// Positive stock adjustments (besides orders) so the ledger / M4 has variety.
-// These are admin actions — no order line origin, attributed to the admin user.
-const ADJUSTMENTS: { itemIndex: number; qty: number; reason: string }[] = [
-  { itemIndex: 0, qty: 15, reason: "admin_adjustment" },
-  { itemIndex: 3, qty: 8, reason: "return" },
-];
+/** Bias toward recent days within a band (upward weekly growth). */
+function daysInBand(rng: () => number, [min, max]: [number, number]): number {
+  const r = rng();
+  return Math.round(max + (min - max) * Math.pow(r, 1.4));
+}
 
-function daysAgo(n: number): Date {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d;
+type LineRef = { item: CatalogItem; qty: number };
+
+function pickItem(
+  rng: () => number,
+  items: CatalogItem[],
+  hot: CatalogItem[]
+): CatalogItem | undefined {
+  if (hot.length > 0 && rng() < 0.35) return hot[Math.floor(rng() * hot.length)];
+  if (items.length === 0) return undefined;
+  return items[Math.floor(rng() * items.length)];
+}
+
+/** Apply a stock change + write an audit log for a manual/admin action. */
+async function applyAdjust(
+  rng: () => number,
+  items: CatalogItem[],
+  pool: CatalogItem[],
+  change: number,
+  reason: string,
+  userId: string,
+  orderLineId: number | null,
+  daysAgo: number
+) {
+  if (pool.length === 0) return;
+  const item = pool[Math.floor(rng() * pool.length)];
+  const newQty = item.qtyInStock + change;
+  if (newQty < 0) return; // respects the stock ≥ 0 CHECK
+  await db
+    .update(productItem)
+    .set({ qtyInStock: newQty })
+    .where(sql`${productItem.id} = ${item.id}`);
+  await db.insert(inventoryLog).values({
+    productItemId: item.id,
+    orderLineId,
+    userId,
+    change,
+    reason,
+    createdAt: daysAgoUtc(daysAgo, rng),
+  });
 }
 
 /**
- * Seed demo customers, shop orders, order lines, and the inventory ledger
- * (every log records WHO + origin order line).
- *
- * @param admin The seeded superAdmin, used as the actor for admin stock adjustments.
+ * Seed 80 synthetic orders (status/date spread) + per-line inventory logs,
+ * then opManager/superAdmin audit adjustments. All orderLine / inventoryLog
+ * rows are append-only. Returns nothing (logs + stock are written directly).
  */
-export async function seedOrders(admin: SeededUser) {
-  // ── 1. Seed demo customers ─────────────────────────────────────────────
-  const emailToId = new Map<string, string>();
-  for (const c of CUSTOMERS) {
-    const hashed = await hashPassword("password123");
-    const [row] = await db
-      .insert(users)
-      .values({ name: c.name, email: c.email, role: c.role, password: hashed })
-      .returning({ id: users.id });
-    emailToId.set(c.email, row.id);
-  }
-  console.log(`✅ ${CUSTOMERS.length} customer users seeded`);
+export async function seedOrders(actors: SeedActors, items: CatalogItem[]) {
+  const rng = mulberry32(PRNG_SEED);
+  const hot = items.filter((i) => HOT_DUMMY_IDS.has(i.dummyId));
 
-  // ── 2. Load product items to reference in order lines ─────────────────
-  const items = await db
-    .select({ id: productItem.id, price: productItem.price })
-    .from(productItem)
-    .orderBy(asc(productItem.id));
-  console.log(`✅ Loaded ${items.length} product items`);
+  let orderCount = 0;
+  let lineCount = 0;
 
-  // ── 3. Seed orders + lines + inventory logs ────────────────────────────
-  for (const def of ORDERS) {
-    const userId = emailToId.get(def.customerEmail)!;
-    const orderDate = daysAgo(def.daysAgo);
+  for (const plan of STATUS_PLAN) {
+    for (let i = 0; i < plan.count; i++) {
+      const daysAgo = daysInBand(rng, plan.band);
+      const orderDate = daysAgoUtc(daysAgo, rng);
 
-    // Compute order total from line items (decimal money, 2 dp)
-    const orderTotal = def.lines
-      .reduce((sum, l) => sum + l.qty * Number(items[l.itemIndex].price), 0)
-      .toFixed(2);
+      // Pick a customer + lines (1-3 lines, qty 1-3).
+      const customer = actors.customers[Math.floor(rng() * actors.customers.length)];
+      const nLines = randInt(rng, 1, 3);
+      const lines: LineRef[] = [];
+      let orderTotal = 0;
+      for (let l = 0; l < nLines; l++) {
+        const item = pickItem(rng, items, hot);
+        if (!item) break;
+        const qty = randInt(rng, 1, 3);
+        const newQty = item.qtyInStock - qty;
+        if (newQty < 0) continue; // guard against negative stock
+        item.qtyInStock = newQty; // track locally for later adjustments
+        lines.push({ item, qty });
+        orderTotal += qty * Number(item.discountPrice ?? item.price);
+      }
+      if (lines.length === 0) continue;
 
-    const [order] = await db
-      .insert(shopOrder)
-      .values({
-        userId,
-        orderDate,
-        orderTotal,
-        orderStatus: def.status,
-        shippingAddress: def.shippingAddress,
-        billingAddress: def.shippingAddress,
-        createdAt: orderDate,
-        updatedAt: orderDate,
-      })
-      .returning({ id: shopOrder.id });
-
-    for (const { itemIndex, qty } of def.lines) {
-      const item = items[itemIndex];
-
-      // Insert the line first to capture its id (the inventory log's origin).
-      const [line] = await db
-        .insert(orderLine)
+      const address = ADDRESSES[Math.floor(rng() * ADDRESSES.length)];
+      const [order] = await db
+        .insert(shopOrder)
         .values({
-          productItemId: item.id,
-          orderId: order.id,
-          qty,
-          price: item.price,
+          userId: customer.id,
+          orderDate,
+          orderTotal: orderTotal.toFixed(2),
+          orderStatus: plan.status,
+          shippingAddress: address,
+          billingAddress: address,
           createdAt: orderDate,
+          updatedAt: orderDate,
         })
-        .returning({ id: orderLine.id });
+        .returning({ id: shopOrder.id });
+      orderCount++;
 
-      // Stock out + audit log (who = customer, origin = order line)
-      await db
-        .update(productItem)
-        .set({ qtyInStock: sql`${productItem.qtyInStock} - ${qty}` })
-        .where(eq(productItem.id, item.id));
-
-      await db.insert(inventoryLog).values({
-        userId,
-        orderLineId: line.id,
-        productItemId: item.id,
-        change: -qty,
-        reason: "order_placed",
-        createdAt: orderDate,
-      });
+      for (const { item, qty } of lines) {
+        const [line] = await db
+          .insert(orderLine)
+          .values({
+            productItemId: item.id,
+            orderId: order.id,
+            qty,
+            price: (item.discountPrice ?? item.price),
+            createdAt: orderDate,
+          })
+          .returning({ id: orderLine.id });
+        lineCount++;
+        await db
+          .update(productItem)
+          .set({ qtyInStock: sql`${productItem.qtyInStock} - ${qty}` })
+          .where(sql`${productItem.id} = ${item.id}`);
+        await db.insert(inventoryLog).values({
+          productItemId: item.id,
+          orderLineId: line.id,
+          userId: customer.id,
+          change: -qty,
+          reason: "طلب شراء",
+          createdAt: orderDate,
+        });
+      }
     }
   }
 
-  // ── 4. Positive stock adjustments (restock / return) ───────────────────
-  // Admin/system work: no order line origin, attributed to the admin actor.
-  for (const { itemIndex, qty, reason } of ADJUSTMENTS) {
-    const item = items[itemIndex];
-    await db
-      .update(productItem)
-      .set({ qtyInStock: sql`${productItem.qtyInStock} + ${qty}` })
-      .where(eq(productItem.id, item.id));
+  console.log(`✅ ${orderCount} orders with ${lineCount} order lines seeded`);
 
-    await db.insert(inventoryLog).values({
-      userId: admin.id,
-      orderLineId: null,
-      productItemId: item.id,
-      change: qty,
-      reason,
-    });
+  // ── opManager product CRUD audit logs ───────────────────────────────
+  const op = actors.ops[0];
+  // Products created mid-window by an opManager (+new stock).
+  for (let i = 0; i < 8; i++) {
+    await applyAdjust(rng, items, hot, randInt(rng, 8, 30), "إضافة منتج", op.id, null, randInt(rng, 40, 55));
+  }
+  // Products updated (stock tweaks, ±).
+  for (let i = 0; i < 6; i++) {
+    await applyAdjust(rng, items, hot, randInt(rng, -8, 12), "تعديل منتج", op.id, null, randInt(rng, 30, 50));
+  }
+  // Products deleted (no stock effect, change = 0).
+  for (let i = 0; i < 2; i++) {
+    await applyAdjust(rng, items, hot, 0, "حذف منتج", op.id, null, randInt(rng, 20, 45));
   }
 
-  // ── 5. Reconcile denormalized product.totalStock ───────────────────────
-  // product.totalStock is denormalized from product_item.qty_in_stock. Products
-  // that got their single item replaced by variants (variations.ts) or had stock
-  // decremented/incremented here would otherwise keep a stale total. Bulk UPDATE
-  // is far more performant than a per-product loop — a single correlated pass.
-  // Uses fully-qualified names so the subquery can't be ambiguous.
+  // ── superAdmin manual inventory logs ────────────────────────────────
+  for (let i = 0; i < 10; i++) {
+    await applyAdjust(rng, items, items, randInt(rng, -15, 20), "تصحيح جرد", actors.admin.id, null, randInt(rng, 3, 50));
+  }
+  for (let i = 0; i < 8; i++) {
+    await applyAdjust(rng, items, items, randInt(rng, 1, 10), "مرتجع", actors.admin.id, null, randInt(rng, 10, 45));
+  }
+  for (let i = 0; i < 7; i++) {
+    await applyAdjust(rng, items, items, -randInt(rng, 1, 6), "تالف", actors.admin.id, null, randInt(rng, 5, 40));
+  }
+
+  // ── Reconcile denormalized product.totalStock ───────────────────────
   await db.update(product).set({
     totalStock: sql.raw(`
       (
@@ -235,8 +198,5 @@ export async function seedOrders(admin: SeededUser) {
       )
     `),
   });
-
-  console.log("✅ Product totalStock reconciled from item sums");
-
-  console.log(`✅ ${ORDERS.length} orders + inventory logs seeded`);
+  console.log("✅ product.totalStock reconciled from item sums");
 }

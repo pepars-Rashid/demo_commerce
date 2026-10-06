@@ -317,7 +317,7 @@ export async function createProduct(data: ProductFormValues) {
     createdItems.map((ci) => ({
       productItemId: ci.id,
       change: ci.qtyInStock,
-      reason: "product_created",
+      reason: "إضافة منتج",
     })),
   );
 
@@ -472,7 +472,7 @@ export async function updateProduct(id: number, data: ProductFormValues) {
       return {
         productItemId: itemId,
         change: Number(it.qtyInStock) - oldQty,
-        reason: "product_updated",
+        reason: "تعديل منتج",
       };
     }),
   ];
@@ -486,7 +486,7 @@ export async function updateProduct(id: number, data: ProductFormValues) {
         .from(productItemTable)
         .where(and(eq(productItemTable.productId, id), isNull(productItemTable.deletedAt), inArray(productItemTable.sku, newSkus)));
       for (const r of createdNew) {
-        auditLogs.push({ productItemId: r.id, change: r.qtyInStock, reason: "product_updated" });
+        auditLogs.push({ productItemId: r.id, change: r.qtyInStock, reason: "تعديل منتج" });
       }
     }
   }
@@ -522,7 +522,7 @@ export async function deleteProduct(id: number) {
     itemsToDelete.map((r) => ({
       productItemId: r.id,
       change: 0,
-      reason: "product_deleted",
+      reason: "حذف منتج",
     })),
   );
 
@@ -553,7 +553,7 @@ export async function batchDeleteProducts(ids: number[]) {
     itemsToDelete.map((r) => ({
       productItemId: r.id,
       change: 0,
-      reason: "product_batch_deleted",
+      reason: "حذف جماعي للمنتجات",
     })),
   );
 
